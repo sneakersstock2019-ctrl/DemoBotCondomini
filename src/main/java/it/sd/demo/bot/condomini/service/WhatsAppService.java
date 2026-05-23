@@ -68,6 +68,7 @@ public class WhatsAppService {
             from = message.path("from").asText();
             testoMessaggio = message.path("text").path("body").asText();
 
+            System.out.println("Processo Messaggio: " + testoMessaggio);
             processaMessaggio(from, testoMessaggio);
 
         } catch (Exception e) {
