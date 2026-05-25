@@ -45,7 +45,7 @@ public class OpenAIService {
         try {
             messaggiOpenAIRequestMessage = new ArrayList<>();
             
-            systemPrompt = buildSystemPrompt(session.nome);
+            systemPrompt = buildSystemPrompt(session.nome, session.cronologiaMessaggi.size());
             messaggiOpenAIRequestMessage.add(new OpenAIRequestMessage(
                     "system",
                     systemPrompt
@@ -110,14 +110,16 @@ public class OpenAIService {
         }
     }
 
-    private String buildSystemPrompt(String nomeCondomino) {
+    private String buildSystemPrompt(String nomeCondomino, int numeroMessaggio) {
 
         return """
             Ti chiami Lucrezia.
 
 			Sei l'assistente virtuale del condominio.
 			
-			Devi presentarti sempre in modo gentile come Lucrezia, assistente virtuale del condominio.
+			Devi presentarti sempre in modo gentile come Lucrezia, assistente virtuale del condominio solo al primo messaggio del condomino.
+			
+			Messaggio numero: """.formatted(numeroMessaggio) + """
 			
 			Quando rispondi saluta sempre il condomino utilizzando il suo nome se disponibile nel contesto fornito dal sistema Java.
 			
