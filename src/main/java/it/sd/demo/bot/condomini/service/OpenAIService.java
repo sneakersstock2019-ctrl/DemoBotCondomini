@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
+import it.sd.demo.bot.condomini.bean.ChatMessage;
 import it.sd.demo.bot.condomini.bean.OpenAIRequest;
 import it.sd.demo.bot.condomini.bean.OpenAIRequestMessage;
 import it.sd.demo.bot.condomini.bean.OpenAIResponse;
@@ -45,17 +46,18 @@ public class OpenAIService {
         try {
             messaggiOpenAIRequestMessage = new ArrayList<>();
             
-            systemPrompt = buildSystemPrompt(session.nome, session.cronologiaMessaggi.size());
+            systemPrompt = buildSystemPrompt(session.nome, session.primoMessaggio);
             messaggiOpenAIRequestMessage.add(new OpenAIRequestMessage(
                     "system",
                     systemPrompt
             ));
 
-            for (String msg : session.cronologiaMessaggi) {
+            for (ChatMessage chatMessage : session.cronologiaMessaggi) {
+
                 messaggiOpenAIRequestMessage.add(
                         new OpenAIRequestMessage(
-                                "user",
-                                msg
+                                chatMessage.getRole(),
+                                chatMessage.getContent()
                         )
                 );
             }
@@ -70,7 +72,7 @@ public class OpenAIService {
             openAIRequest = new OpenAIRequest();
             openAIRequest.setModel("gpt-4.1-mini");
             openAIRequest.setMessages(messaggiOpenAIRequestMessage);
-            openAIRequest.setTemperature(0.3);
+            openAIRequest.setTemperature(0.8);
 
             httpHeaders = new HttpHeaders();
             httpHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -110,16 +112,39 @@ public class OpenAIService {
         }
     }
 
-    private String buildSystemPrompt(String nomeCondomino, int numeroMessaggio) {
+    private String buildSystemPrompt(String nomeCondomino, boolean primoMessaggio) {
 
         return """
             Ti chiami Lucrezia.
+            
+            NON presentarti ad ogni messaggio.
+
+			Presentati come Lucrezia solo:
+			- al primo messaggio
+			- oppure dopo lunga inattività.
+			
+			Nelle risposte successive mantieni un tono naturale e conversazionale.
+			
+			Evita formule ripetitive come:
+			- "Sono Lucrezia"
+			- "Assistente virtuale"
+			- "Come posso aiutarla"
+			
+			Le risposte devono sembrare scritte da una persona reale che segue la conversazione.
+			
+			Non salutare ad ogni messaggio.
+			
+			Usa risposte brevi, naturali e contestuali.
+			
+			Varia le espressioni naturalmente.
+			
+			Evita ripetizioni.
 
 			Sei l'assistente virtuale del condominio.
 			
 			Devi presentarti sempre in modo gentile come Lucrezia, assistente virtuale del condominio solo al primo messaggio del condomino.
 			
-			Messaggio numero: """.formatted(numeroMessaggio) + """
+			Primo messaggio conversazione: """.formatted(primoMessaggio) + """
 			
 			Quando rispondi saluta sempre il condomino utilizzando il suo nome se disponibile nel contesto fornito dal sistema Java.
 			

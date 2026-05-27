@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
+import it.sd.demo.bot.condomini.bean.ChatMessage;
 import it.sd.demo.bot.condomini.bean.Ticket;
 import it.sd.demo.bot.condomini.bean.UserSession;
 import lombok.RequiredArgsConstructor;
@@ -92,7 +93,6 @@ public class WhatsAppService {
         userSession = sessions.getOrDefault(from, new UserSession());
         sessions.putIfAbsent(from, userSession);
         userSession.nome = nomeUtente;
-        userSession.cronologiaMessaggi.add(testoMessaggio);
         
         if (userSession.step == null && userSession.haTicketAperti) {
         	userSession.step = STEP_SCELTA_TICKET;
@@ -142,6 +142,30 @@ public class WhatsAppService {
         
         aiResponse = openAIService.askLucrezia(testoMessaggio, userSession);
         rispostaPerUtente = aiResponse.getReply();
+        
+        /*salvo conversazione*/
+        userSession.cronologiaMessaggi.add(
+                new ChatMessage(
+                        "user",
+                        testoMessaggio
+                )
+        );
+
+        userSession.cronologiaMessaggi.add(
+                new ChatMessage(
+                        "assistant",
+                        rispostaPerUtente
+                )
+        );
+        
+        /*limito a ultime conversazioni*/
+        if (userSession.cronologiaMessaggi.size() > 20) {
+        	userSession.cronologiaMessaggi =
+        			userSession.cronologiaMessaggi.subList(
+        					userSession.cronologiaMessaggi.size() - 20,
+        					userSession.cronologiaMessaggi.size()
+                    );
+        }
         
         if (aiResponse.isOpen_ticket()) {
             ticket = new Ticket();

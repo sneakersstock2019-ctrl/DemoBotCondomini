@@ -9,9 +9,12 @@ public class UserSession {
 	
     public String step;
 
-    public List<String> cronologiaMessaggi = new ArrayList<>();
+    public List<ChatMessage> cronologiaMessaggi = new ArrayList<>();
 
     public int tentativiComprensione = 0;
 
     public boolean haTicketAperti = false;
+    
+    public boolean primoMessaggio = true;
+    
 }
