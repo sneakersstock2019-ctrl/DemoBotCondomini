@@ -16,16 +16,13 @@ public class DashboardController {
         model.addAttribute("adminName", "Renato");
         model.addAttribute("pendingCount", 3);
 
-        model.addAttribute("lavoriAutorizzati", List.of(
+        model.addAttribute("tickets", List.of(
                 new TicketView("Daniele Cecconato", "Condominio Via Roma 15",
                         "Lampadina guasta scale condominiali 1° piano",
                         "elettricista", "P2", "In attesa", "22/05, 22:33"),
                 new TicketView("Daniele Cecconato", "Condominio Via Roma 15",
                         "Lampadina bruciata scale condominiali 2° piano",
-                        "elettricista", "P2", "In attesa", "22/05, 22:40")
-        ));
-
-        model.addAttribute("daAssemblea", List.of(
+                        "elettricista", "P2", "In attesa", "22/05, 22:40"),
                 new TicketView("Daniele Cecconato", "Condominio Via Roma 15",
                         "Richiesta installazione pannelli fotovoltaici su tetto condominiale ad uso esclusivo",
                         "generale", "P1", "In attesa", "22/05, 14:42")

@@ -1,216 +1,325 @@
 <!DOCTYPE html>
 <html lang="it" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
     <title>Nexus Domus - Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
 </head>
 
-<body>
+<body class="sb-nav-fixed">
 
-<div class="d-flex min-vh-100">
+<nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
+    <a class="navbar-brand ps-3" href="/dashboard">Nexus Domus</a>
 
-    <aside class="sidebar d-none d-lg-flex flex-column">
-        <div class="brand d-flex align-items-center gap-3">
-            <div class="logo">ND</div>
-            <div>
-                <h4 class="mb-0 fw-bold">Nexus Domus</h4>
-                <small>GESTIONALE</small>
-            </div>
-        </div>
+    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0"
+            id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
 
-        <div class="user-box d-flex align-items-center gap-3 mt-4">
-            <div class="avatar">R</div>
-            <div>
-                <div class="fw-bold" th:text="${adminName}">Renato</div>
-                <small>Amministratore</small>
-            </div>
-            <span class="badge rounded-pill bg-danger ms-auto" th:text="${pendingCount}">3</span>
-        </div>
-
-        <nav class="mt-4">
-            <div class="nav-title">OPERATIVITÀ</div>
-            <a class="nav-link active" href="/dashboard">▦ Dashboard</a>
-            <a class="nav-link" href="#">↺ Storico</a>
-            <a class="nav-link" href="#">▣ Calendario</a>
-            <a class="nav-link" href="#">🔧 Manutenzioni</a>
-            <a class="nav-link" href="#">⌖ Mappa</a>
-
-            <div class="nav-title mt-4">IMPOSTAZIONI</div>
-            <a class="nav-link" href="#">▣ Bacheca & QR</a>
-            <a class="nav-link" href="#">☷ Gestione Dati</a>
-            <a class="nav-link" href="#">▭ Piano</a>
-        </nav>
-
-        <div class="mt-auto guide">▤ Guida</div>
-    </aside>
-
-    <main class="content flex-grow-1">
-
-        <div class="d-flex align-items-center gap-3 mb-4">
-            <button class="btn menu-btn position-relative">
-                ☰
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                      th:text="${pendingCount}">3</span>
+    <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
+        <div class="input-group">
+            <input class="form-control" type="text" placeholder="Cerca ticket..." />
+            <button class="btn btn-primary" type="button">
+                <i class="fas fa-search"></i>
             </button>
-            <h1 class="fw-bold mb-0">Nexus Domus</h1>
         </div>
+    </form>
 
-        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 align-items-md-center mb-4">
-            <span class="badge-soft-warning" th:text="${pendingCount + ' in attesa'}">3 in attesa</span>
+    <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
+               data-bs-toggle="dropdown">
+                <i class="fas fa-user fa-fw"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#">Profilo</a></li>
+                <li><a class="dropdown-item" href="#">Impostazioni</a></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><a class="dropdown-item" href="#">Logout</a></li>
+            </ul>
+        </li>
+    </ul>
+</nav>
 
-            <div class="d-flex gap-3">
-                <button class="btn btn-outline-primary btn-lg fw-bold">↓ CSV</button>
-                <button class="btn btn-outline-danger btn-lg fw-bold">↓ PDF</button>
+<div id="layoutSidenav">
+
+    <div id="layoutSidenav_nav">
+        <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+
+            <div class="sb-sidenav-menu">
+                <div class="nav">
+
+                    <div class="sb-sidenav-menu-heading">Operatività</div>
+
+                    <a class="nav-link active" href="/dashboard">
+                        <div class="sb-nav-link-icon"><i class="fas fa-gauge-high"></i></div>
+                        Dashboard
+                    </a>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-clock-rotate-left"></i></div>
+                        Storico
+                    </a>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-calendar-days"></i></div>
+                        Calendario
+                    </a>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+                        Manutenzioni
+                    </a>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-map-location-dot"></i></div>
+                        Mappa
+                    </a>
+
+                    <div class="sb-sidenav-menu-heading">Impostazioni</div>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-qrcode"></i></div>
+                        Bacheca & QR
+                    </a>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-sliders"></i></div>
+                        Gestione dati
+                    </a>
+
+                    <a class="nav-link" href="#">
+                        <div class="sb-nav-link-icon"><i class="fas fa-credit-card"></i></div>
+                        Piano
+                    </a>
+
+                </div>
             </div>
-        </div>
 
-        <section class="mb-4">
-            <input class="form-control form-control-lg search-input mb-3"
-                   placeholder="Cerca per nome, problema, condominio...">
-
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                <span class="filter-label">Priorità:</span>
-                <button class="btn chip active">Tutte</button>
-                <button class="btn chip">🚨 Urgente</button>
-                <button class="btn chip">⚠ Alta</button>
-                <button class="btn chip">Standard</button>
+            <div class="sb-sidenav-footer">
+                <div class="small">Accesso come:</div>
+                <span th:text="${adminName}">Renato</span>
             </div>
 
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="filter-label">Servizio:</span>
-                <button class="btn chip active">Tutti</button>
-                <button class="btn chip">Elettricista</button>
-                <button class="btn chip">Generale</button>
-            </div>
-        </section>
+        </nav>
+    </div>
 
-        <section class="dashboard-board">
+    <div id="layoutSidenav_content">
+        <main>
 
-            <div class="card section-card mb-4">
-                <div class="card-header bg-white d-flex align-items-center gap-3 p-4">
-                    <div class="section-icon success">✓</div>
-                    <div>
-                        <h3 class="mb-1 fw-bold">
-                            Lavori Autorizzati
-                            <span class="badge rounded-pill bg-success" th:text="${#lists.size(lavoriAutorizzati)}">2</span>
-                        </h3>
-                        <p class="mb-0 text-secondary">Click per confermare e assegnare azienda</p>
+            <div class="container-fluid px-4">
+
+                <h1 class="mt-4">Dashboard</h1>
+
+                <ol class="breadcrumb mb-4">
+                    <li class="breadcrumb-item active">Gestione segnalazioni condominiali</li>
+                </ol>
+
+                <div class="row">
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card bg-warning text-white mb-4">
+                            <div class="card-body">
+                                <h4 th:text="${pendingCount}">3</h4>
+                                Ticket in attesa
+                            </div>
+                            <div class="card-footer d-flex align-items-center justify-content-between">
+                                <span>Da lavorare</span>
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card bg-success text-white mb-4">
+                            <div class="card-body">
+                                <h4>2</h4>
+                                Lavori autorizzati
+                            </div>
+                            <div class="card-footer d-flex align-items-center justify-content-between">
+                                <span>Pronti per assegnazione</span>
+                                <i class="fas fa-check"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card bg-primary text-white mb-4">
+                            <div class="card-body">
+                                <h4>1</h4>
+                                Da assemblea
+                            </div>
+                            <div class="card-footer d-flex align-items-center justify-content-between">
+                                <span>Richiede valutazione</span>
+                                <i class="fas fa-landmark"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+                        <div class="card bg-danger text-white mb-4">
+                            <div class="card-body">
+                                <h4>0</h4>
+                                Non pertinenti
+                            </div>
+                            <div class="card-footer d-flex align-items-center justify-content-between">
+                                <span>Fuori competenza</span>
+                                <i class="fas fa-triangle-exclamation"></i>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="card-body">
-                    <div th:each="ticket : ${lavoriAutorizzati}"
-                         class="ticket-card green-border mb-3">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-table me-1"></i>
+                            Segnalazioni aperte
+                        </div>
 
-                        <div class="d-flex justify-content-between gap-3">
-                            <div>
-                                <h4 class="fw-bold mb-1" th:text="${ticket.nome}">Daniele Cecconato</h4>
-                                <span class="status-badge" th:text="${ticket.stato}">In attesa</span>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-download"></i> CSV
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-5">
+                                <input class="form-control" placeholder="Cerca per nome, problema, condominio..." />
                             </div>
 
-                            <div class="d-flex gap-2 align-items-start">
-                                <span class="priority-badge bg-success" th:text="${ticket.priorita}">P2</span>
-                                <button class="btn icon-btn">💬</button>
-                                <button class="btn icon-btn">🗑</button>
+                            <div class="col-md-3">
+                                <select class="form-select">
+                                    <option>Tutte le priorità</option>
+                                    <option>Urgente</option>
+                                    <option>Alta</option>
+                                    <option>Standard</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <select class="form-select">
+                                    <option>Tutti i servizi</option>
+                                    <option>Elettricista</option>
+                                    <option>Idraulico</option>
+                                    <option>Generale</option>
+                                </select>
                             </div>
                         </div>
 
-                        <p class="text-secondary fs-5 mt-3 mb-1" th:text="${ticket.condominio}">Condominio Via Roma 15</p>
-                        <p class="ticket-description" th:text="${ticket.descrizione}">Lampadina guasta scale condominiali</p>
-                        <p class="service-text">Servizio: <span th:text="${ticket.servizio}">elettricista</span></p>
+                        <div class="row g-4">
 
-                        <div class="row g-3 mt-2">
-                            <div class="col-6">
-                                <button class="btn btn-success btn-lg w-100 fw-bold">✓ Approva</button>
+                            <div class="col-lg-6" th:each="ticket : ${tickets}">
+                                <div class="card shadow-sm h-100 border-start border-5"
+                                     th:classappend="${ticket.priorita == 'P1'} ? ' border-warning' : ' border-success'">
+
+                                    <div class="card-body">
+
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <h5 class="card-title mb-1" th:text="${ticket.nome}">
+                                                    Daniele Cecconato
+                                                </h5>
+
+                                                <span class="badge bg-warning text-dark" th:text="${ticket.stato}">
+                                                    In attesa
+                                                </span>
+                                            </div>
+
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge"
+                                                      th:classappend="${ticket.priorita == 'P1'} ? ' bg-warning text-dark' : ' bg-success'"
+                                                      th:text="${ticket.priorita}">
+                                                    P2
+                                                </span>
+
+                                                <button class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-comment"></i>
+                                                </button>
+
+                                                <button class="btn btn-outline-danger btn-sm">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <p class="text-muted mb-1" th:text="${ticket.condominio}">
+                                            Condominio Via Roma 15
+                                        </p>
+
+                                        <p class="fs-5 mb-2" th:text="${ticket.descrizione}">
+                                            Lampadina guasta scale condominiali 1° piano
+                                        </p>
+
+                                        <p class="fst-italic text-muted">
+                                            Servizio:
+                                            <span th:text="${ticket.servizio}">elettricista</span>
+                                        </p>
+
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <button class="btn btn-success w-100 fw-bold">
+                                                    <i class="fas fa-check"></i> Approva
+                                                </button>
+                                            </div>
+
+                                            <div class="col-6">
+                                                <button class="btn btn-danger w-100 fw-bold">
+                                                    <i class="fas fa-xmark"></i> Rifiuta
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="text-muted small mt-3" th:text="${ticket.data}">
+                                            22/05, 22:33
+                                        </div>
+
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <button class="btn btn-danger btn-lg w-100 fw-bold">× Rifiuta</button>
-                            </div>
+
                         </div>
 
-                        <p class="text-secondary mt-3 mb-0" th:text="${ticket.data}">22/05, 22:33</p>
                     </div>
                 </div>
+
             </div>
 
-            <div class="card section-card mb-4">
-                <div class="card-header bg-white d-flex align-items-center gap-3 p-4">
-                    <div class="section-icon assembly-icon">◷</div>
+        </main>
+
+        <footer class="py-4 bg-light mt-auto">
+            <div class="container-fluid px-4">
+                <div class="d-flex align-items-center justify-content-between small">
+                    <div class="text-muted">
+                        © 2026 Nexus Domus
+                    </div>
                     <div>
-                        <h3 class="mb-1 fw-bold">
-                            Da Assemblea
-                            <span class="badge rounded-pill bg-warning text-dark" th:text="${#lists.size(daAssemblea)}">1</span>
-                        </h3>
-                        <p class="mb-0 text-secondary">Richiede discussione in assemblea condominiale</p>
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    <div th:each="ticket : ${daAssemblea}"
-                         class="ticket-card orange-border mb-3">
-
-                        <div class="d-flex justify-content-between gap-3">
-                            <div>
-                                <h4 class="fw-bold mb-1" th:text="${ticket.nome}">Daniele Cecconato</h4>
-                                <span class="status-badge" th:text="${ticket.stato}">In attesa</span>
-                            </div>
-
-                            <div class="d-flex gap-2 align-items-start">
-                                <span class="priority-badge bg-warning text-dark" th:text="${ticket.priorita}">P1</span>
-                                <button class="btn icon-btn">💬</button>
-                                <button class="btn icon-btn">🗑</button>
-                            </div>
-                        </div>
-
-                        <p class="text-secondary fs-5 mt-3 mb-1" th:text="${ticket.condominio}">Condominio Via Roma 15</p>
-                        <p class="ticket-description" th:text="${ticket.descrizione}">Richiesta assemblea</p>
-                        <p class="service-text">Servizio: <span th:text="${ticket.servizio}">generale</span></p>
-
-                        <button class="btn btn-outline-warning btn-lg fw-bold mt-2">🏛 Porta in assemblea</button>
-
-                        <p class="text-secondary mt-3 mb-0" th:text="${ticket.data}">22/05, 14:42</p>
+                        <a href="/privacy">Privacy</a>
+                        &middot;
+                        <a href="/terms">Termini</a>
                     </div>
                 </div>
             </div>
-
-            <div class="card section-card mb-5">
-                <div class="card-header bg-white d-flex align-items-center gap-3 p-4">
-                    <div class="section-icon danger-icon">!</div>
-                    <div>
-                        <h3 class="mb-1 fw-bold">
-                            Non Pertinenti
-                            <span class="badge rounded-pill bg-danger">0</span>
-                        </h3>
-                        <p class="mb-0 text-secondary">Fuori competenza amministratore</p>
-                    </div>
-                </div>
-
-                <div class="card-body empty-box">
-                    Nessuna richiesta
-                </div>
-            </div>
-
-        </section>
-
-        <footer class="text-center text-secondary pb-5">
-            © 2025-2026 D&J Corporate s.r.l.s — Software proprietario. Tutti i diritti riservati.
-            <br>
-            <a href="#">Guida</a>
-            <a href="#">Assistenza</a>
-            <a href="#">Piani</a>
-            <a href="/terms">Termini</a>
-            <a href="/privacy">Privacy</a>
         </footer>
 
-        <button class="chat-floating">□</button>
+    </div>
 
-    </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/js/scripts.js"></script>
+
 </body>
 </html>
