@@ -1,371 +1,275 @@
 <!DOCTYPE html>
 <html lang="it" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="utf-8" />
-    <title>Nexus Domus - Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <title>Lucrezia - Dashboard AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
-    <link rel="stylesheet" th:href="@{/css/custom-dashboard.css}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://use.fontawesome.com/releases/v6.5.0/js/all.js" crossorigin="anonymous"></script>
 
-    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" th:href="@{/css/custom.css}">
 </head>
 
-<body class="sb-nav-fixed">
+<body>
 
-<nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
-    <a class="navbar-brand ps-3" href="/dashboard">Lucrezia</a>
+<div class="app-shell">
 
-    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0"
-            id="sidebarToggle">
-        <i class="fas fa-bars"></i>
-    </button>
+    <aside class="sidebar-ai">
 
-    <form class="d-none d-md-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
-        <div class="input-group">
-            <input class="form-control" type="text" placeholder="Cerca ticket..." />
-            <button class="btn btn-primary" type="button">
-                <i class="fas fa-search"></i>
-            </button>
+        <div class="brand-ai">
+            <div class="brand-icon">
+                <i class="fa-solid fa-building-user"></i>
+            </div>
+            <div>
+                <h4>Nexus Domus</h4>
+                <span>powered by Lucrezia</span>
+            </div>
         </div>
-    </form>
 
-    <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4">
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
-               data-bs-toggle="dropdown">
-                <i class="fas fa-user fa-fw"></i>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#">Profilo</a></li>
-                <li><a class="dropdown-item" href="#">Impostazioni</a></li>
-                <li><hr class="dropdown-divider" /></li>
-                <li><a class="dropdown-item" href="#">Logout</a></li>
-            </ul>
-        </li>
-    </ul>
-</nav>
-
-<div id="layoutSidenav">
-
-    <div id="layoutSidenav_nav">
-        <nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
-
- <div class="sb-sidenav-menu">
-    <div class="nav">
-
-		<div class="user-profile-sidebar">
-		
-		    <div class="d-flex align-items-center mb-3">
-		
-		        <div class="user-avatar">
-		            <i class="fas fa-user"></i>
-		        </div>
-		
-		        <div class="ms-3">
-					<div class="small text-muted" th:text="${ruolo}"></div>
-		            <div class="fw-bold text-white" th:text="${adminName}"></div>
-		        </div>
-		
-		    </div>
-		
-		    <label class="condominio-label">
-		        Condominio
-		    </label>
-		
-		    <select class="form-select condominio-select">
-		        <option selected>Tutti</option>
-		        <option>Via Europa</option>
-		        <option>Via Puglia</option>
-		    </select>
-		
-		</div>
-		<!-- 
-        <div class="user-profile-sidebar">
-
-            <div class="d-flex align-items-center">
-
+        <div class="user-panel">
+            <div class="d-flex align-items-center mb-3">
                 <div class="user-avatar">
-                    <i class="fas fa-user"></i>
+                    <i class="fa-solid fa-user"></i>
                 </div>
 
                 <div class="ms-3">
-                    <div class="small text-muted" th:text="${ruolo}"></div>
-                    <div class="fw-bold text-white"
-                         th:text="${adminName}">
-                        Renato
-                    </div>
+                    <div class="small text-secondary">Accesso come</div>
+                    <div class="fw-bold text-white" th:text="${adminName}">Renato</div>
                 </div>
+            </div>
 
+            <label class="condominio-label">Condominio</label>
+            <select class="form-select condominio-select">
+                <option selected>Tutti</option>
+                <option>Via Europa</option>
+                <option>Via Puglia</option>
+            </select>
+        </div>
+
+        <nav class="menu-ai">
+            <a class="active" href="/dashboard">
+                <i class="fa-solid fa-gauge-high"></i>
+                Dashboard
+            </a>
+            <a href="#">
+                <i class="fa-solid fa-robot"></i>
+                Lucrezia AI
+            </a>
+            <a href="#">
+                <i class="fa-solid fa-ticket"></i>
+                Ticket
+            </a>
+            <a href="#">
+                <i class="fa-solid fa-users-gear"></i>
+                Fornitori
+            </a>
+            <a href="#">
+                <i class="fa-solid fa-building"></i>
+                Condomini
+            </a>
+            <a href="#">
+                <i class="fa-solid fa-folder-open"></i>
+                Documenti
+            </a>
+            <a href="#">
+                <i class="fa-solid fa-gear"></i>
+                Impostazioni
+            </a>
+        </nav>
+
+    </aside>
+
+    <main class="main-ai">
+
+        <div class="top-ai">
+            <div>
+                <span class="eyebrow">Assistente operativo condominiale</span>
+                <h1>Buongiorno <span th:text="${adminName}">Renato</span> 👋</h1>
+                <p>Lucrezia ti aiuta a gestire ticket, priorità e fornitori in modo intelligente.</p>
+            </div>
+
+            <div class="top-actions">
+                <button class="btn btn-light btn-lg">
+                    <i class="fa-solid fa-bell"></i>
+                </button>
+                <button class="btn btn-primary btn-lg">
+                    <i class="fa-solid fa-plus"></i>
+                    Nuovo ticket
+                </button>
             </div>
         </div>
- 		-->
- 		
-        <div class="sb-sidenav-menu-heading">Operatività</div>
 
-                    <a class="nav-link active" href="/dashboard">
-                        <div class="sb-nav-link-icon"><i class="fas fa-gauge-high"></i></div>
-                        Dashboard
-                    </a>
+        <section class="hero-ai">
 
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-clock-rotate-left"></i></div>
-                        Storico
-                    </a>
+            <div class="hero-content">
+                <span class="ai-pill">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    Lucrezia AI
+                </span>
 
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-calendar-days"></i></div>
-                        Calendario
-                    </a>
+                <h2>Cosa vuoi sapere oggi?</h2>
 
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-screwdriver-wrench"></i></div>
-                        Manutenzioni
-                    </a>
+                <p>
+                    Chiedi a Lucrezia di analizzare i ticket, suggerire priorità,
+                    preparare risposte ai condomini o assegnare le segnalazioni ai fornitori corretti.
+                </p>
 
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-map-location-dot"></i></div>
-                        Mappa
-                    </a>
+                <div class="ai-input-box">
+                    <input type="text"
+                           placeholder="Esempio: mostrami i ticket urgenti di Via Europa">
+                    <button>
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
 
-                    <div class="sb-sidenav-menu-heading">Impostazioni</div>
-
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-qrcode"></i></div>
-                        Bacheca & QR
-                    </a>
-
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-sliders"></i></div>
-                        Gestione dati
-                    </a>
-
-                    <a class="nav-link" href="#">
-                        <div class="sb-nav-link-icon"><i class="fas fa-credit-card"></i></div>
-                        Piano
-                    </a>
-
+                <div class="quick-prompts">
+                    <button>Riassumi ticket urgenti</button>
+                    <button>Chiama fornitore idraulico</button>
+                    <button>Prepara risposta condomino</button>
                 </div>
             </div>
-        </nav>
-    </div>
 
-    <div id="layoutSidenav_content">
-        <main>
-
-            <div class="container-fluid px-4">
-
-                <h1 class="mt-4 fw-bold app-title-gradient">Dashboard Operativa</h1>
-
-                <ol class="breadcrumb mb-4">
-                    <li class="breadcrumb-item active">Gestione segnalazioni condominiali</li>
-                </ol>
-
-                <div class="row">
-
-                    <div class="col-xl-3 col-md-6">
-                        <div class="card bg-warning text-white mb-4">
-                            <div class="card-body">
-                                <h4 th:text="${pendingCount}">3</h4>
-                                Ticket in attesa
-                            </div>
-                            <div class="card-footer d-flex align-items-center justify-content-between">
-                                <span>Da lavorare</span>
-                                <i class="fas fa-clock"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6">
-                        <div class="card bg-success text-white mb-4">
-                            <div class="card-body">
-                                <h4>2</h4>
-                                Lavori autorizzati
-                            </div>
-                            <div class="card-footer d-flex align-items-center justify-content-between">
-                                <span>Pronti per assegnazione</span>
-                                <i class="fas fa-check"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6">
-                        <div class="card bg-primary text-white mb-4">
-                            <div class="card-body">
-                                <h4>1</h4>
-                                Da assemblea
-                            </div>
-                            <div class="card-footer d-flex align-items-center justify-content-between">
-                                <span>Richiede valutazione</span>
-                                <i class="fas fa-landmark"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6">
-                        <div class="card bg-danger text-white mb-4">
-                            <div class="card-body">
-                                <h4>0</h4>
-                                Non pertinenti
-                            </div>
-                            <div class="card-footer d-flex align-items-center justify-content-between">
-                                <span>Fuori competenza</span>
-                                <i class="fas fa-triangle-exclamation"></i>
-                            </div>
-                        </div>
-                    </div>
-
+            <div class="hero-orb">
+                <div class="orb">
+                    <i class="fa-solid fa-brain"></i>
                 </div>
-
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="fas fa-table me-1"></i>
-                            Segnalazioni aperte
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-download"></i> CSV
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm">
-                                <i class="fas fa-file-pdf"></i> PDF
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="card-body">
-
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-5">
-                                <input class="form-control" placeholder="Cerca per nome, problema, condominio..." />
-                            </div>
-
-                            <div class="col-md-3">
-                                <select class="form-select">
-                                    <option>Tutte le priorità</option>
-                                    <option>Urgente</option>
-                                    <option>Alta</option>
-                                    <option>Standard</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-3">
-                                <select class="form-select">
-                                    <option>Tutti i servizi</option>
-                                    <option>Elettricista</option>
-                                    <option>Idraulico</option>
-                                    <option>Generale</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="row g-4">
-
-                            <div class="col-lg-6" th:each="ticket : ${tickets}">
-                                <div class="card shadow-sm h-100 border-start border-5"
-                                     th:classappend="${ticket.priorita == 'P1'} ? ' border-warning' : ' border-success'">
-
-                                    <div class="card-body">
-
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <h5 class="card-title mb-1" th:text="${ticket.nome}">
-                                                    Daniele Cecconato
-                                                </h5>
-
-                                                <span class="badge bg-warning text-dark" th:text="${ticket.stato}">
-                                                    In attesa
-                                                </span>
-                                            </div>
-
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="badge"
-                                                      th:classappend="${ticket.priorita == 'P1'} ? ' bg-warning text-dark' : ' bg-success'"
-                                                      th:text="${ticket.priorita}">
-                                                    P2
-                                                </span>
-
-                                                <button class="btn btn-outline-secondary btn-sm">
-                                                    <i class="fas fa-comment"></i>
-                                                </button>
-
-                                                <button class="btn btn-outline-danger btn-sm">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <p class="text-muted mb-1" th:text="${ticket.condominio}">
-                                            Condominio Via Roma 15
-                                        </p>
-
-                                        <p class="fs-5 mb-2" th:text="${ticket.descrizione}">
-                                            Lampadina guasta scale condominiali 1° piano
-                                        </p>
-
-                                        <p class="fst-italic text-muted">
-                                            Servizio:
-                                            <span th:text="${ticket.servizio}">elettricista</span>
-                                        </p>
-
-                                        <div class="row g-2">
-                                            <div class="col-6">
-                                                <button class="btn btn-success w-100 fw-bold">
-                                                    <i class="fas fa-check"></i> Approva
-                                                </button>
-                                            </div>
-
-                                            <div class="col-6">
-                                                <button class="btn btn-danger w-100 fw-bold">
-                                                    <i class="fas fa-xmark"></i> Rifiuta
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-muted small mt-3" th:text="${ticket.data}">
-                                            22/05, 22:33
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-
-                    </div>
-                </div>
-
             </div>
 
-        </main>
+        </section>
 
-        <footer class="py-4 bg-light mt-auto">
-            <div class="container-fluid px-4">
-                <div class="d-flex align-items-center justify-content-between small">
-                    <div class="text-muted">
-                        © 2026 Nexus Domus
-                    </div>
+        <section class="stats-grid">
+
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fa-solid fa-ticket"></i></div>
+                <div>
+                    <span>Ticket aperti</span>
+                    <h3 th:text="${ticketAperti}">8</h3>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div>
+                    <span>Urgenti</span>
+                    <h3 th:text="${ticketUrgenti}">2</h3>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon yellow"><i class="fa-solid fa-check-to-slot"></i></div>
+                <div>
+                    <span>Da approvare</span>
+                    <h3 th:text="${daApprovare}">3</h3>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <div>
+                    <span>Fornitori attivi</span>
+                    <h3 th:text="${fornitoriAttivi}">5</h3>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="content-grid">
+
+            <div class="tickets-panel">
+
+                <div class="panel-header">
                     <div>
-                        <a href="/privacy">Privacy</a>
-                        &middot;
-                        <a href="/terms">Termini</a>
+                        <h3>Segnalazioni recenti</h3>
+                        <p>Ticket aperti tramite WhatsApp e classificati da Lucrezia.</p>
+                    </div>
+
+                    <button class="btn btn-outline-primary">
+                        Vedi tutti
+                    </button>
+                </div>
+
+                <div class="ticket-ai-card" th:each="ticket : ${tickets}">
+                    <div class="ticket-left">
+                        <div class="priority-dot"
+                             th:classappend="${ticket.priorita == 'P1'} ? ' urgent' : (${ticket.priorita == 'P2'} ? ' medium' : ' low')"></div>
+
+                        <div>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <h5 th:text="${ticket.nome}">Mario Rossi</h5>
+                                <span class="ticket-status" th:text="${ticket.stato}">In attesa</span>
+                            </div>
+
+                            <p class="ticket-desc" th:text="${ticket.descrizione}">
+                                Perdita acqua nel vano scale
+                            </p>
+
+                            <div class="ticket-meta">
+                                <span><i class="fa-solid fa-building"></i> <span th:text="${ticket.condominio}">Via Europa</span></span>
+                                <span><i class="fa-solid fa-toolbox"></i> <span th:text="${ticket.servizio}">idraulico</span></span>
+                                <span><i class="fa-regular fa-clock"></i> <span th:text="${ticket.data}">oggi</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ticket-actions">
+                        <button class="btn btn-light">
+                            <i class="fa-solid fa-comment"></i>
+                        </button>
+                        <button class="btn btn-success">
+                            Approva
+                        </button>
                     </div>
                 </div>
-            </div>
-        </footer>
 
-    </div>
+            </div>
+
+            <div class="side-panel">
+
+                <div class="mini-card ai-suggestion">
+                    <span class="ai-pill small">
+                        <i class="fa-solid fa-sparkles"></i>
+                        Suggerimento AI
+                    </span>
+
+                    <h4>Priorità consigliata</h4>
+                    <p>
+                        Lucrezia ha rilevato 2 segnalazioni potenzialmente urgenti.
+                        Conviene assegnare prima gli interventi idraulici.
+                    </p>
+
+                    <button class="btn btn-primary w-100">
+                        Analizza con Lucrezia
+                    </button>
+                </div>
+
+                <div class="mini-card">
+                    <h4>Azioni rapide</h4>
+
+                    <div class="quick-action">
+                        <i class="fa-solid fa-user-plus"></i>
+                        Aggiungi fornitore
+                    </div>
+
+                    <div class="quick-action">
+                        <i class="fa-solid fa-file-export"></i>
+                        Esporta report
+                    </div>
+
+                    <div class="quick-action">
+                        <i class="fa-solid fa-message"></i>
+                        Invia aggiornamento
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
 
 </div>
 
-<button class="floating-add">
-    <i class="fas fa-plus"></i>
-</button>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/js/scripts.js"></script>
-
 </body>
 </html>

@@ -13,20 +13,18 @@ public class DashboardController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
 
-        model.addAttribute("ruolo", "Amministratore");
         model.addAttribute("adminName", "Renato Zaino");
-        model.addAttribute("pendingCount", 3);
+        model.addAttribute("selectedCondominio", "Tutti");
+
+        model.addAttribute("ticketAperti", 8);
+        model.addAttribute("ticketUrgenti", 2);
+        model.addAttribute("daApprovare", 3);
+        model.addAttribute("fornitoriAttivi", 5);
 
         model.addAttribute("tickets", List.of(
-                new TicketView("Salvatore D'Amato", "Condominio Viale Europa 175",
-                        "Lampadina guasta scale condominiali 1° piano",
-                        "elettricista", "P2", "In attesa", "29/05, 10:33"),
-                new TicketView("Salvatore D'Amato", "Condominio Viale Europa 175",
-                        "Lampadina bruciata scale condominiali 2° piano",
-                        "elettricista", "P2", "In attesa", "29/05, 12:40"),
-                new TicketView("Marta Raffone", "Condominio Via Puglia 16",
-                        "Richiesta installazione pannelli fotovoltaici su tetto condominiale ad uso esclusivo",
-                        "generale", "P1", "In attesa", "22/05, 11:15")
+                new TicketView("Mario Rossi", "Via Europa", "Perdita acqua nel vano scale", "idraulico", "P1", "In attesa", "oggi 09:42"),
+                new TicketView("Laura Bianchi", "Via Puglia", "Luce scale non funzionante", "elettricista", "P2", "Da assegnare", "oggi 10:15"),
+                new TicketView("Michele Verdi", "Via Europa", "Richiesta installazione pannelli fotovoltaici", "amministrazione", "P3", "Da assemblea", "ieri 18:20")
         ));
 
         return "dashboard";
