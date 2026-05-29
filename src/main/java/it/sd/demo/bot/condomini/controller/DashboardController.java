@@ -13,19 +13,19 @@ public class DashboardController {
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
 
-        model.addAttribute("adminName", "Renato");
+        model.addAttribute("adminName", "Renato (Amministratore)");
         model.addAttribute("pendingCount", 3);
 
         model.addAttribute("tickets", List.of(
-                new TicketView("Daniele Cecconato", "Condominio Via Roma 15",
+                new TicketView("Salvatore D'Amato", "Condominio Viale Europa 175",
                         "Lampadina guasta scale condominiali 1° piano",
-                        "elettricista", "P2", "In attesa", "22/05, 22:33"),
-                new TicketView("Daniele Cecconato", "Condominio Via Roma 15",
+                        "elettricista", "P2", "In attesa", "29/05, 10:33"),
+                new TicketView("Salvatore D'Amato", "Condominio Viale Europa 175",
                         "Lampadina bruciata scale condominiali 2° piano",
-                        "elettricista", "P2", "In attesa", "22/05, 22:40"),
-                new TicketView("Daniele Cecconato", "Condominio Via Roma 15",
+                        "elettricista", "P2", "In attesa", "29/05, 12:40"),
+                new TicketView("Marta Raffone", "Condominio Via Puglia 16",
                         "Richiesta installazione pannelli fotovoltaici su tetto condominiale ad uso esclusivo",
-                        "generale", "P1", "In attesa", "22/05, 14:42")
+                        "generale", "P1", "In attesa", "22/05, 11:15")
         ));
 
         return "dashboard";
