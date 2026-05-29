@@ -7,6 +7,7 @@
 
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/css/styles.css" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/custom-dashboard.css}">
 
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
 </head>
@@ -114,7 +115,7 @@
 
             <div class="container-fluid px-4">
 
-                <h1 class="mt-4">Dashboard</h1>
+                <h1 class="mt-4 fw-bold app-title-gradient">Dashboard Operativa</h1>
 
                 <ol class="breadcrumb mb-4">
                     <li class="breadcrumb-item active">Gestione segnalazioni condominiali</li>
@@ -317,6 +318,10 @@
     </div>
 
 </div>
+
+<button class="floating-add">
+    <i class="fas fa-plus"></i>
+</button>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin@7.0.7/dist/js/scripts.js"></script>
