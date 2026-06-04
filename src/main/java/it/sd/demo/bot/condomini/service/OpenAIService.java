@@ -1,16 +1,21 @@
 package it.sd.demo.bot.condomini.service;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
@@ -214,5 +219,42 @@ public class OpenAIService {
 			  "priority": "..."
 			}
             """;
+    }
+    
+    public String transcribeAudio(File audioFile) {
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            headers.setBearerAuth(apiKey);
+
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new FileSystemResource(audioFile));
+            body.add("model", "gpt-4o-mini-transcribe");
+            body.add("language", "it");
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity =
+                    new HttpEntity<>(body, headers);
+
+            System.out.println("Invoco Api OpenAI Transcription");
+
+            ResponseEntity<String> response =
+                    restTemplate.postForEntity(
+                            "https://api.openai.com/v1/audio/transcriptions",
+                            requestEntity,
+                            String.class
+                    );
+
+            System.out.println("Response Transcription:");
+            System.out.println(response.getBody());
+
+            JsonNode jsonNode = objectMapper.readTree(response.getBody());
+
+            return jsonNode.path("text").asText();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }
