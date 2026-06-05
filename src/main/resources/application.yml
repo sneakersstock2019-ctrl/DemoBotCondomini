@@ -8,3 +8,11 @@ whatsapp:
   token: ${WHATSAPP_TOKEN}
   phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID}
   verify-token: ${DEMO_WEBHOOK_TOKEN}
+  
+spring:
+  datasource:
+  url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=require
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  driver-class-name: org.postgresql.Driver
+  
