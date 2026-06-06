@@ -1,0 +1,67 @@
+package it.sd.demo.bot.condomini.dao;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import javax.sql.DataSource;
+
+import org.springframework.stereotype.Repository;
+
+import it.sd.demo.bot.condomini.bean.Utente;
+import lombok.RequiredArgsConstructor;
+
+@Repository
+@RequiredArgsConstructor
+public class UtenteDao {
+
+    private final DataSource dataSource;
+
+    public Utente findCondominoByTelefono(String telefono) {
+
+        String sql = """
+            SELECT 
+                u.id,
+                u.nome,
+                u.cognome,
+                u.email,
+                u.telefono,
+                u.ruolo,
+                c.id AS id_condominio,
+                c.nome AS nome_condominio
+            FROM utenti u
+            JOIN mappa_utenti_condomini muc ON muc.id_utente = u.id
+            JOIN condomini c ON c.id = muc.id_condominio
+            WHERE u.telefono = ?
+              AND u.ruolo = 'CONDOMINO'
+            LIMIT 1
+            """;
+
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setString(1, telefono);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Utente utente = new Utente();
+                    utente.setId(rs.getLong("id"));
+                    utente.setNome(rs.getString("nome"));
+                    utente.setCognome(rs.getString("cognome"));
+                    utente.setEmail(rs.getString("email"));
+                    utente.setTelefono(rs.getString("telefono"));
+                    utente.setRuolo(rs.getString("ruolo"));
+                    utente.setIdCondominio(rs.getLong("id_condominio"));
+                    utente.setNomeCondominio(rs.getString("nome_condominio"));
+                    return utente;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+}

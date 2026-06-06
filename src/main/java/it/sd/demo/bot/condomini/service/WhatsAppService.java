@@ -15,8 +15,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
 import it.sd.demo.bot.condomini.bean.ChatMessage;
-import it.sd.demo.bot.condomini.bean.Ticket;
 import it.sd.demo.bot.condomini.bean.UserSession;
+import it.sd.demo.bot.condomini.bean.Utente;
+import it.sd.demo.bot.condomini.dao.TicketDao;
+import it.sd.demo.bot.condomini.dao.UtenteDao;
+import it.sd.demo.bot.condomini.util.PhoneUtils;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -28,48 +31,51 @@ public class WhatsAppService {
 
     @Value("${whatsapp.phone-number-id}")
     private String phoneNumberId;
-    
+
     private static final String STEP_SCELTA_TICKET = "SCELTA_TICKET";
     private static final String STEP_NUOVA_SEGNALAZIONE = "NUOVA_SEGNALAZIONE";
-    
+
     private final OpenAIService openAIService;
-    
+    private final UtenteDao utenteDao;
+    private final TicketDao ticketDao;
+    private final PhoneUtils phoneUtils;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
+
     private final String urlApiMetaMessages = "https://graph.facebook.com/v25.0/{}/messages";
+
     private final Map<String, UserSession> sessions = new ConcurrentHashMap<>();
 
-    private final Map<String, String> utenti = Map.of(
-            "393492123304", "Salvatore",
-            "393282036763", "Marta",
-            "393382702339", "Renato"
-    );
-
     public void elaboraMessaggio(String body) {
-    	JsonNode jsonRoot = null;
-    	JsonNode messageNode = null, message = null;
-    	String from = null, testoMessaggio = null;
-    	
-    	try {
-            jsonRoot = objectMapper.readTree(body);
+        try {
+            JsonNode jsonRoot = objectMapper.readTree(body);
 
-            messageNode = jsonRoot.path("entry")
+            JsonNode messageNode = jsonRoot.path("entry")
                     .get(0)
                     .path("changes")
                     .get(0)
                     .path("value");
 
             if (!messageNode.has("messages")) {
-            	System.out.println("Nessun messaggio da leggere");
-            	return;
+                System.out.println("Nessun messaggio da leggere");
+                return;
             }
 
-            message = messageNode.path("messages").get(0);
+            JsonNode message = messageNode.path("messages").get(0);
 
-            from = message.path("from").asText();
-            testoMessaggio = message.path("text").path("body").asText();
+            String from = phoneUtils.normalizePhone(message.path("from").asText());
+            String type = message.path("type").asText();
 
-            System.out.println("Processo Messaggio: " + testoMessaggio);
+            if (!"text".equals(type)) {
+                invioMessaggio(from, "Al momento posso gestire solo messaggi di testo. Puoi descrivermi il problema con un messaggio?");
+                return;
+            }
+
+            String testoMessaggio = message.path("text").path("body").asText();
+
+            System.out.println("Processo Messaggio da " + from + ": " + testoMessaggio);
+
             processaMessaggio(from, testoMessaggio);
 
         } catch (Exception e) {
@@ -78,185 +84,217 @@ public class WhatsAppService {
     }
 
     private void processaMessaggio(String from, String testoMessaggio) {
-    	Ticket ticket = null;
-    	UserSession userSession = null;
-    	AIResponse aiResponse = null;
-    	String nomeUtente = null, rispostaPerUtente = null;
-    	
-        nomeUtente = utenti.get(from);
-        if (nomeUtente == null) {
-        	System.err.println("Numero " + from + " non autorizzato.");
-        	invioMessaggio(from, "Numero non autorizzato.");
+
+        Utente utente = utenteDao.findCondominoByTelefono(from);
+
+        if (utente == null) {
+            System.err.println("Numero " + from + " non autorizzato.");
+            invioMessaggio(from, "Numero non autorizzato.");
             return;
         }
 
-        userSession = sessions.getOrDefault(from, new UserSession());
+        String nomeUtente = utente.getNome();
+
+        UserSession userSession = sessions.getOrDefault(from, new UserSession());
         sessions.putIfAbsent(from, userSession);
+
         userSession.nome = nomeUtente;
-        
-        if (userSession.step == null && userSession.haTicketAperti) {
-        	userSession.step = STEP_SCELTA_TICKET;
 
-        	invioMessaggio(from,
-                    "Ciao " + nomeUtente + ", sono Lucrezia, l'assistente virtuale del condominio 😊\n\n" +
-                    "Vedo che hai già una o più segnalazioni aperte.\n\n" +
-                    "Vuoi:\n" +
-                    "1️⃣ conoscere lo stato dei ticket aperti\n" +
-                    "2️⃣ aprire una nuova segnalazione?"
-            );
-            return;
-        }
-        
-        if (STEP_SCELTA_TICKET.equals(userSession.step)) {
-            if (testoMessaggio.toLowerCase().contains("1") || testoMessaggio.toLowerCase().contains("stato") || testoMessaggio.toLowerCase().contains("ticket")) {
-            	invioMessaggio(from,
-                        "Certo 😊\n" +
-                        "Puoi monitorare lo stato delle tue segnalazioni da qui:\n\n" +
-                        "https://demo-condomini.it/ticket?telefono=" + from
-                );
+        boolean haTicketAperti = ticketDao.hasTicketApertiByUtente(utente.getId());
+        userSession.haTicketAperti = haTicketAperti;
 
-            	userSession.step = null;
-                return;
-            }
-
-            if (testoMessaggio.toLowerCase().contains("2") || testoMessaggio.toLowerCase().contains("nuova") || testoMessaggio.toLowerCase().contains("segnalazione")) {
-            	userSession.step = STEP_NUOVA_SEGNALAZIONE;
-            	userSession.tentativiComprensione = 0;
-            	userSession.cronologiaMessaggi.clear();
-
-            	invioMessaggio(from,
-                        "Va bene 😊\n" +
-                        "Descrivimi pure il nuovo problema e ti aiuterò ad aprire la segnalazione."
-                );
-                return;
-            }
+        if (userSession.step == null && haTicketAperti) {
+            userSession.step = STEP_SCELTA_TICKET;
 
             invioMessaggio(from,
-                    "Puoi rispondermi con:\n" +
-                    "1 per conoscere lo stato dei ticket aperti\n" +
-                    "2 per aprire una nuova segnalazione"
+                    "Ciao " + nomeUtente + ", sono Lucrezia, l'assistente virtuale del condominio 😊\n\n" +
+                            "Vedo che hai già una o più segnalazioni aperte.\n\n" +
+                            "Vuoi:\n" +
+                            "1️⃣ conoscere lo stato dei ticket aperti\n" +
+                            "2️⃣ aprire una nuova segnalazione?"
             );
             return;
         }
-        
-        
-        aiResponse = openAIService.askLucrezia(testoMessaggio, userSession);
-        rispostaPerUtente = aiResponse.getReply();
-        
-        /*salvo conversazione*/
-        userSession.cronologiaMessaggi.add(
-                new ChatMessage(
-                        "user",
-                        testoMessaggio
-                )
-        );
 
-        userSession.cronologiaMessaggi.add(
-                new ChatMessage(
-                        "assistant",
-                        rispostaPerUtente
-                )
-        );
-        
-        /*limito a ultime conversazioni*/
-        if (userSession.cronologiaMessaggi.size() > 20) {
-        	userSession.cronologiaMessaggi =
-        			userSession.cronologiaMessaggi.subList(
-        					userSession.cronologiaMessaggi.size() - 20,
-        					userSession.cronologiaMessaggi.size()
-                    );
+        if (STEP_SCELTA_TICKET.equals(userSession.step)) {
+            gestisciSceltaTicket(from, testoMessaggio, nomeUtente, userSession);
+            return;
         }
-        
-        if (aiResponse.isOpen_ticket()) {
-            ticket = new Ticket();
 
-            ticket.setId(123456L);
-            ticket.setNome(nomeUtente);
-            ticket.setTelefono(from);
-            ticket.setDescrizione(testoMessaggio);
-            ticket.setCategoria(aiResponse.getCategory());
-            ticket.setStato("APERTO");
+        if (STEP_NUOVA_SEGNALAZIONE.equals(userSession.step)) {
+            userSession.step = null;
+        }
+
+        AIResponse aiResponse = openAIService.askLucrezia(testoMessaggio, userSession);
+
+        String rispostaPerUtente = aiResponse.getReply();
+
+        if (rispostaPerUtente == null || rispostaPerUtente.isBlank()) {
+            rispostaPerUtente = "Mi dispiace, al momento non riesco a elaborare la richiesta.";
+        }
+
+        salvaConversazione(userSession, testoMessaggio, rispostaPerUtente);
+
+        if (aiResponse.isOpen_ticket()) {
+
+            Long idTicket = ticketDao.insertTicket(
+                    utente.getIdCondominio(),
+                    utente.getId(),
+                    aiResponse.getCategory(),
+                    aiResponse.getPriority(),
+                    "WHATSAPP",
+                    testoMessaggio
+            );
+
+            if (idTicket == null) {
+                invioMessaggio(from,
+                        "Mi dispiace, ho capito la segnalazione ma non sono riuscita ad aprire il ticket. Riprova tra poco."
+                );
+                return;
+            }
 
             rispostaPerUtente += """
 
+                    
                     Ticket aperto correttamente ✅
 
                     Numero ticket: #%d
 
                     Monitora qui:
                     https://demo-condomini.it/ticket/%d
-                    """.formatted(
-                    ticket.getId(),
-                    ticket.getId()
+                    """.formatted(idTicket, idTicket);
+
+            resetSessioneDopoTicket(userSession);
+
+            invioMessaggio(from, rispostaPerUtente);
+            return;
+        }
+
+        userSession.tentativiComprensione++;
+
+        if (userSession.tentativiComprensione >= 10) {
+
+            Long idTicket = ticketDao.insertTicket(
+                    utente.getIdCondominio(),
+                    utente.getId(),
+                    "generico",
+                    "media",
+                    "WHATSAPP",
+                    testoMessaggio
             );
-            
-            userSession.haTicketAperti = true;
-            userSession.step = null;
-            userSession.tentativiComprensione = 0;
-            userSession.cronologiaMessaggi.clear();
-        } else {
-        	userSession.tentativiComprensione++;
 
-            if (userSession.tentativiComprensione >= 10) {
-
-                ticket = new Ticket();
-                ticket.setId(123456L);
-                ticket.setNome(nomeUtente);
-                ticket.setTelefono(from);
-                ticket.setDescrizione(testoMessaggio);
-                ticket.setCategoria("generico");
-                ticket.setStato("APERTO");
-
-                rispostaPerUtente = 
-                        "Grazie per le informazioni 😊\n\n" +
-                        "Per non farti perdere altro tempo, ho aperto una segnalazione generica riportando la descrizione che mi hai fornito.\n\n" +
-                        "Ticket aperto correttamente ✅\n" +
-                        "Numero ticket: #" + ticket.getId() + "\n\n" +
-                        "Puoi monitorarlo qui:\n" +
-                        "https://demo-condomini.it/ticket/";
-
-                userSession.haTicketAperti = true;
-                userSession.step = null;
-                userSession.tentativiComprensione = 0;
-                userSession.cronologiaMessaggi.clear();
+            if (idTicket == null) {
+                invioMessaggio(from,
+                        "Mi dispiace, non sono riuscita ad aprire la segnalazione generica. Riprova tra poco."
+                );
+                return;
             }
 
+            rispostaPerUtente =
+                    "Grazie per le informazioni 😊\n\n" +
+                            "Per non farti perdere altro tempo, ho aperto una segnalazione generica riportando la descrizione che mi hai fornito.\n\n" +
+                            "Ticket aperto correttamente ✅\n" +
+                            "Numero ticket: #" + idTicket + "\n\n" +
+                            "Puoi monitorarlo qui:\n" +
+                            "https://demo-condomini.it/ticket/" + idTicket;
+
+            resetSessioneDopoTicket(userSession);
         }
 
         invioMessaggio(from, rispostaPerUtente);
-        
+    }
+
+    private void gestisciSceltaTicket(String from,
+                                      String testoMessaggio,
+                                      String nomeUtente,
+                                      UserSession userSession) {
+
+        String msg = testoMessaggio.toLowerCase();
+
+        if (msg.contains("1") || msg.contains("stato") || msg.contains("ticket")) {
+            invioMessaggio(from,
+                    "Certo 😊\n" +
+                            "Puoi monitorare lo stato delle tue segnalazioni da qui:\n\n" +
+                            "https://demo-condomini.it/ticket?telefono=" + from
+            );
+
+            userSession.step = null;
+            return;
+        }
+
+        if (msg.contains("2") || msg.contains("nuova") || msg.contains("segnalazione")) {
+            userSession.step = STEP_NUOVA_SEGNALAZIONE;
+            userSession.tentativiComprensione = 0;
+            userSession.cronologiaMessaggi.clear();
+            userSession.primoMessaggio = false;
+
+            invioMessaggio(from,
+                    "Va bene " + nomeUtente + " 😊\n" +
+                            "Descrivimi pure il nuovo problema e ti aiuterò ad aprire la segnalazione."
+            );
+            return;
+        }
+
+        invioMessaggio(from,
+                "Puoi rispondermi con:\n" +
+                        "1 per conoscere lo stato dei ticket aperti\n" +
+                        "2 per aprire una nuova segnalazione"
+        );
+    }
+
+    private void salvaConversazione(UserSession userSession,
+                                    String testoMessaggio,
+                                    String rispostaPerUtente) {
+
+        userSession.cronologiaMessaggi.add(new ChatMessage("user", testoMessaggio));
+        userSession.cronologiaMessaggi.add(new ChatMessage("assistant", rispostaPerUtente));
+
+        userSession.primoMessaggio = false;
+
+        if (userSession.cronologiaMessaggi.size() > 20) {
+            userSession.cronologiaMessaggi =
+                    userSession.cronologiaMessaggi.subList(
+                            userSession.cronologiaMessaggi.size() - 20,
+                            userSession.cronologiaMessaggi.size()
+                    );
+        }
+    }
+
+    private void resetSessioneDopoTicket(UserSession userSession) {
+        userSession.haTicketAperti = true;
+        userSession.step = null;
+        userSession.tentativiComprensione = 0;
+        userSession.cronologiaMessaggi.clear();
+        userSession.primoMessaggio = false;
     }
 
     private void invioMessaggio(String to, String testoMessaggio) {
-    	Map<String, Object> text = null;
-    	Map<String, Object> payload = null;
-    	HttpHeaders httpHeaders = null;
-    	HttpEntity<Map<String, Object>> httpEntity = null;
-    	
         try {
-            text = Map.of("body", testoMessaggio);
-            
-            payload = Map.of(
+            Map<String, Object> text = Map.of("body", testoMessaggio);
+
+            Map<String, Object> payload = Map.of(
                     "messaging_product", "whatsapp",
                     "to", to,
                     "type", "text",
                     "text", text
             );
 
-            httpHeaders = new HttpHeaders();
+            HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setContentType(MediaType.APPLICATION_JSON);
             httpHeaders.setBearerAuth(token);
 
-            httpEntity = new HttpEntity<>(payload, httpHeaders);
-            
-            System.out.println("Invoco Api Meta Messages (POST): " + urlApiMetaMessages.replace("{}", phoneNumberId));
-            System.out.println("Headers: " + httpHeaders);
+            HttpEntity<Map<String, Object>> httpEntity =
+                    new HttpEntity<>(payload, httpHeaders);
+
+            String url = urlApiMetaMessages.replace("{}", phoneNumberId);
+
+            System.out.println("Invoco Api Meta Messages (POST): " + url);
             System.out.println("Payload: " + payload);
-            restTemplate.postForEntity(urlApiMetaMessages.replace("{}", phoneNumberId), httpEntity, String.class);
+
+            restTemplate.postForEntity(url, httpEntity, String.class);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 }
