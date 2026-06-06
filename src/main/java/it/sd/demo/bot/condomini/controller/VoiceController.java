@@ -127,7 +127,7 @@ public class VoiceController {
 
         trimHistory(session);
 
-        if (!aiResponse.isOpen_ticket()) {
+        if (!aiResponse.isOpenTicket()) {
             session.tentativiComprensione++;
 
             if (session.tentativiComprensione >= 3) {

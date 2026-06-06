@@ -156,7 +156,7 @@ public class WhatsAppService {
 
         salvaConversazione(userSession, testoMessaggio, rispostaPerUtente);
 
-        if (aiResponse.isOpen_ticket()) {
+        if (aiResponse.isOpenTicket()) {
         	String categoria = normalizeCategoria(aiResponse.getCategory());
         	String priorita = normalizePriorita(aiResponse.getPriority());
         	String descrizioneTicket =

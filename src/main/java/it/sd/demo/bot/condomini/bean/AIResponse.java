@@ -35,7 +35,4 @@ public class AIResponse {
     @JsonProperty("ticket_description")
     private String ticketDescription;
 
-    public boolean isOpen_ticket() {
-        return openTicket;
-    }
 }
