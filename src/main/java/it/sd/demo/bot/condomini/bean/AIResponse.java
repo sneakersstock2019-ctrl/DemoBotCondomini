@@ -1,41 +1,41 @@
 package it.sd.demo.bot.condomini.bean;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class AIResponse {
 
     private String reply;
-    private boolean open_ticket;
+
+    @JsonProperty("open_ticket")
+    private boolean openTicket;
+
     private String category;
+
     private String priority;
 
-    public String getReply() {
-        return reply;
-    }
+    @JsonProperty("common_area")
+    private Boolean commonArea;
 
-    public void setReply(String reply) {
-        this.reply = reply;
-    }
+    @JsonProperty("private_area")
+    private Boolean privateArea;
+
+    @JsonProperty("needs_attachment")
+    private Boolean needsAttachment;
+
+    @JsonProperty("attachment_request")
+    private String attachmentRequest;
+
+    @JsonProperty("ticket_description")
+    private String ticketDescription;
 
     public boolean isOpen_ticket() {
-        return open_ticket;
-    }
-
-    public void setOpen_ticket(boolean open_ticket) {
-        this.open_ticket = open_ticket;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getPriority() {
-        return priority;
-    }
-
-    public void setPriority(String priority) {
-        this.priority = priority;
+        return openTicket;
     }
 }

@@ -1,5 +1,6 @@
 package it.sd.demo.bot.condomini.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,9 +15,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
+import it.sd.demo.bot.condomini.bean.AllegatoTemporaneo;
 import it.sd.demo.bot.condomini.bean.ChatMessage;
 import it.sd.demo.bot.condomini.bean.UserSession;
 import it.sd.demo.bot.condomini.bean.Utente;
+import it.sd.demo.bot.condomini.dao.AllegatoDao;
+import it.sd.demo.bot.condomini.dao.AllegatoTemporaneoDao;
+import it.sd.demo.bot.condomini.dao.CondominioAiDao;
 import it.sd.demo.bot.condomini.dao.TicketDao;
 import it.sd.demo.bot.condomini.dao.UtenteDao;
 import it.sd.demo.bot.condomini.util.PhoneUtils;
@@ -34,11 +39,15 @@ public class WhatsAppService {
 
     private static final String STEP_SCELTA_TICKET = "SCELTA_TICKET";
     private static final String STEP_NUOVA_SEGNALAZIONE = "NUOVA_SEGNALAZIONE";
+    private static final String STEP_ATTESA_ALLEGATI = "ATTESA_ALLEGATI";
 
     private final OpenAIService openAIService;
     private final UtenteDao utenteDao;
     private final TicketDao ticketDao;
     private final PhoneUtils phoneUtils;
+    private final CondominioAiDao condominioAiDao;
+    private final AllegatoTemporaneoDao allegatoTemporaneoDao;
+    private final AllegatoDao allegatoDao;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = new RestTemplate();
@@ -67,11 +76,16 @@ public class WhatsAppService {
             String from = phoneUtils.normalizePhone(message.path("from").asText());
             String type = message.path("type").asText();
 
-            if (!"text".equals(type)) {
-                invioMessaggio(from, "Al momento posso gestire solo messaggi di testo. Puoi descrivermi il problema con un messaggio?");
+            if ("image".equals(type) || "video".equals(type) || "document".equals(type)) {
+                processaAllegato(from, type, message);
                 return;
             }
 
+            if (!"text".equals(type)) {
+                invioMessaggio(from, "Al momento posso gestire testo, immagini, video e documenti.");
+                return;
+            }
+            
             String testoMessaggio = message.path("text").path("body").asText();
 
             System.out.println("Processo Messaggio da " + from + ": " + testoMessaggio);
@@ -125,7 +139,14 @@ public class WhatsAppService {
             userSession.step = null;
         }
 
-        AIResponse aiResponse = openAIService.askLucrezia(testoMessaggio, userSession);
+        String contestoCondominio = condominioAiDao.getContestoAiByCondominio(utente.getIdCondominio());
+        AIResponse aiResponse =
+                openAIService.askLucrezia(
+                        testoMessaggio,
+                        userSession,
+                        utente,
+                        contestoCondominio
+                );
 
         String rispostaPerUtente = aiResponse.getReply();
 
@@ -136,15 +157,21 @@ public class WhatsAppService {
         salvaConversazione(userSession, testoMessaggio, rispostaPerUtente);
 
         if (aiResponse.isOpen_ticket()) {
-
-            Long idTicket = ticketDao.insertTicket(
-                    utente.getIdCondominio(),
-                    utente.getId(),
-                    aiResponse.getCategory(),
-                    aiResponse.getPriority(),
-                    "WHATSAPP",
-                    testoMessaggio
-            );
+        	String categoria = normalizeCategoria(aiResponse.getCategory());
+        	String priorita = normalizePriorita(aiResponse.getPriority());
+        	String descrizioneTicket =
+        	        aiResponse.getTicketDescription() != null && !aiResponse.getTicketDescription().isBlank()
+        	                ? aiResponse.getTicketDescription()
+        	                : testoMessaggio;
+        	
+        	Long idTicket = ticketDao.insertTicket(
+        	        utente.getIdCondominio(),
+        	        utente.getId(),
+        	        categoria,
+        	        priorita,
+        	        "WHATSAPP",
+        	        descrizioneTicket
+        	);
 
             if (idTicket == null) {
                 invioMessaggio(from,
@@ -152,6 +179,8 @@ public class WhatsAppService {
                 );
                 return;
             }
+            
+            collegaAllegatiTemporanei(from, idTicket);
 
             rispostaPerUtente += """
 
@@ -167,6 +196,19 @@ public class WhatsAppService {
             resetSessioneDopoTicket(userSession);
 
             invioMessaggio(from, rispostaPerUtente);
+            
+            if (Boolean.TRUE.equals(aiResponse.getNeedsAttachment())) {
+                userSession.step = STEP_ATTESA_ALLEGATI;
+                userSession.idTicketAperto = idTicket;
+            }
+            
+            if (Boolean.TRUE.equals(aiResponse.getNeedsAttachment())
+                    && aiResponse.getAttachmentRequest() != null
+                    && !aiResponse.getAttachmentRequest().isBlank()) {
+
+                rispostaPerUtente += "\n\n" + aiResponse.getAttachmentRequest();
+            }
+            
             return;
         }
 
@@ -296,5 +338,117 @@ public class WhatsAppService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private void processaAllegato(String from, String type, JsonNode message) {
+
+        UserSession userSession = sessions.get(from);
+
+        String mediaId = message.path(type).path("id").asText();
+        String mimeType = message.path(type).path("mime_type").asText(null);
+        String filename = message.path(type).path("filename").asText(null);
+
+        String tipoAllegato = mapTipoAllegato(type);
+
+        if (userSession != null
+                && "ATTESA_ALLEGATI".equals(userSession.step)
+                && userSession.idTicketAperto != null) {
+
+            allegatoDao.insertAllegato(
+                    userSession.idTicketAperto,
+                    tipoAllegato,
+                    filename,
+                    "whatsapp-media-id:" + mediaId,
+                    mimeType,
+                    "WHATSAPP"
+            );
+
+            userSession.step = null;
+            userSession.idTicketAperto = null;
+
+            invioMessaggio(from, "Perfetto, ho allegato il file alla segnalazione. Grazie 😊");
+            return;
+        }
+
+        allegatoTemporaneoDao.insert(
+                from,
+                tipoAllegato,
+                mediaId,
+                mimeType,
+                filename
+        );
+
+        invioMessaggio(from,
+                "Ho ricevuto l'allegato 😊\n" +
+                "Ora descrivimi pure il problema e, se apriremo una segnalazione, lo collegherò automaticamente al ticket.");
+    }
+    
+    private String mapTipoAllegato(String type) {
+
+        if ("image".equals(type)) {
+            return "IMMAGINE";
+        }
+
+        if ("video".equals(type)) {
+            return "VIDEO";
+        }
+
+        if ("document".equals(type)) {
+            return "DOCUMENTO";
+        }
+
+        return "ALTRO";
+    }
+    
+    private void collegaAllegatiTemporanei(String telefono, Long idTicket) {
+
+        List<AllegatoTemporaneo> temporanei =
+                allegatoTemporaneoDao.findByTelefono(telefono);
+
+        for (AllegatoTemporaneo a : temporanei) {
+            allegatoDao.insertAllegato(
+                    idTicket,
+                    a.getTipo(),
+                    a.getNomeFile(),
+                    "whatsapp-media-id:" + a.getMediaId(),
+                    a.getContentType(),
+                    "WHATSAPP"
+            );
+        }
+
+        allegatoTemporaneoDao.deleteByTelefono(telefono);
+    }
+    
+    private String normalizeCategoria(String category) {
+
+        if (category == null || category.isBlank()) {
+            return "generico";
+        }
+
+        category = category.trim().toLowerCase();
+
+        return switch (category) {
+            case "elettricista" -> "elettricista";
+            case "idraulico" -> "idraulico";
+            case "ascensore" -> "ascensore";
+            case "infiltrazioni" -> "infiltrazioni";
+            case "amministrazione" -> "amministrazione";
+            default -> "generico";
+        };
+    }
+    
+    private String normalizePriorita(String priority) {
+
+        if (priority == null || priority.isBlank()) {
+            return "media";
+        }
+
+        priority = priority.trim().toLowerCase();
+
+        return switch (priority) {
+            case "bassa" -> "bassa";
+            case "alta" -> "alta";
+            default -> "media";
+        };
     }
 }

@@ -17,4 +17,6 @@ public class UserSession {
     
     public boolean primoMessaggio = true;
     
+    public Long idTicketAperto;
+    
 }

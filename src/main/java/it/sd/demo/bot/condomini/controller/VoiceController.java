@@ -113,8 +113,9 @@ public class VoiceController {
 
         session.cronologiaMessaggi.add(new ChatMessage("user", speechResult));
 
-        AIResponse aiResponse = openAIService.askLucrezia(speechResult, session);
-
+//        AIResponse aiResponse = openAIService.askLucrezia(speechResult, session);
+        AIResponse aiResponse = null;
+        
         String reply = aiResponse.getReply();
 
         if (reply == null || reply.isBlank()) {
