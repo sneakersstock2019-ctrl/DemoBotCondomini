@@ -113,6 +113,23 @@ public class WhatsAppService {
         sessions.putIfAbsent(from, userSession);
 
         userSession.nome = nomeUtente;
+        
+        if (STEP_ATTESA_ALLEGATI.equals(userSession.step)) {
+            String msg = testoMessaggio.toLowerCase();
+
+            if (msg.contains("no") || msg.contains("grazie") || msg.contains("basta")) {
+                userSession.step = null;
+                userSession.idTicketAperto = null;
+
+                invioMessaggio(from, "Va bene, nessun problema 😊 La segnalazione resta comunque aperta.");
+                return;
+            }
+
+            invioMessaggio(from,
+                    "Se vuoi puoi inviarmi una foto o un video da allegare al ticket.\n" +
+                    "Se non vuoi aggiungere allegati, puoi scrivere 'no grazie'.");
+            return;
+        }
 
         boolean haTicketAperti = ticketDao.hasTicketApertiByUtente(utente.getId());
         userSession.haTicketAperti = haTicketAperti;
@@ -136,7 +153,7 @@ public class WhatsAppService {
         }
 
         if (STEP_NUOVA_SEGNALAZIONE.equals(userSession.step)) {
-            userSession.step = STEP_NUOVA_SEGNALAZIONE;
+            userSession.step = null;
         }
 
         String contestoCondominio = condominioAiDao.getContestoAiByCondominio(utente.getIdCondominio());
@@ -157,23 +174,23 @@ public class WhatsAppService {
         salvaConversazione(userSession, testoMessaggio, rispostaPerUtente);
 
         if (aiResponse.isOpenTicket()) {
-        	userSession.step = null;
-        	
-        	String categoria = normalizeCategoria(aiResponse.getCategory());
-        	String priorita = normalizePriorita(aiResponse.getPriority());
-        	String descrizioneTicket =
-        	        aiResponse.getTicketDescription() != null && !aiResponse.getTicketDescription().isBlank()
-        	                ? aiResponse.getTicketDescription()
-        	                : testoMessaggio;
-        	
-        	Long idTicket = ticketDao.insertTicket(
-        	        utente.getIdCondominio(),
-        	        utente.getId(),
-        	        categoria,
-        	        priorita,
-        	        "WHATSAPP",
-        	        descrizioneTicket
-        	);
+
+            String categoria = normalizeCategoria(aiResponse.getCategory());
+            String priorita = normalizePriorita(aiResponse.getPriority());
+
+            String descrizioneTicket =
+                    aiResponse.getTicketDescription() != null && !aiResponse.getTicketDescription().isBlank()
+                            ? aiResponse.getTicketDescription()
+                            : testoMessaggio;
+
+            Long idTicket = ticketDao.insertTicket(
+                    utente.getIdCondominio(),
+                    utente.getId(),
+                    categoria,
+                    priorita,
+                    "WHATSAPP",
+                    descrizioneTicket
+            );
 
             if (idTicket == null) {
                 invioMessaggio(from,
@@ -181,8 +198,8 @@ public class WhatsAppService {
                 );
                 return;
             }
-            
-            collegaAllegatiTemporanei(from, idTicket);
+
+            int allegatiCollegati = collegaAllegatiTemporanei(from, idTicket);
 
             rispostaPerUtente += """
 
@@ -197,20 +214,16 @@ public class WhatsAppService {
 
             resetSessioneDopoTicket(userSession);
 
-            invioMessaggio(from, rispostaPerUtente);
-            
-            if (Boolean.TRUE.equals(aiResponse.getNeedsAttachment())) {
+            if (allegatiCollegati > 0) {
+                rispostaPerUtente += "\n\nHo collegato al ticket anche l'allegato che mi hai inviato.";
+            } else {
                 userSession.step = STEP_ATTESA_ALLEGATI;
                 userSession.idTicketAperto = idTicket;
-            }
-            
-            if (Boolean.TRUE.equals(aiResponse.getNeedsAttachment())
-                    && aiResponse.getAttachmentRequest() != null
-                    && !aiResponse.getAttachmentRequest().isBlank()) {
 
-                rispostaPerUtente += "\n\n" + aiResponse.getAttachmentRequest();
+                rispostaPerUtente += "\n\nSe vuoi, puoi inviarmi ora una foto o un video del problema e lo allegherò alla segnalazione.";
             }
-            
+
+            invioMessaggio(from, rispostaPerUtente);
             return;
         }
 
@@ -344,7 +357,8 @@ public class WhatsAppService {
     
     private void processaAllegato(String from, String type, JsonNode message) {
 
-        UserSession userSession = sessions.get(from);
+        UserSession userSession = sessions.getOrDefault(from, new UserSession());
+        sessions.putIfAbsent(from, userSession);
 
         String mediaId = message.path(type).path("id").asText();
         String mimeType = message.path(type).path("mime_type").asText(null);
@@ -352,8 +366,7 @@ public class WhatsAppService {
 
         String tipoAllegato = mapTipoAllegato(type);
 
-        if (userSession != null
-                && "ATTESA_ALLEGATI".equals(userSession.step)
+        if (STEP_ATTESA_ALLEGATI.equals(userSession.step)
                 && userSession.idTicketAperto != null) {
 
             allegatoDao.insertAllegato(
@@ -380,6 +393,9 @@ public class WhatsAppService {
                 filename
         );
 
+        userSession.step = STEP_NUOVA_SEGNALAZIONE;
+        userSession.tentativiComprensione = 0;
+
         invioMessaggio(from,
                 "Ho ricevuto l'allegato 😊\n" +
                 "Ora descrivimi pure il problema e, se apriremo una segnalazione, lo collegherò automaticamente al ticket.");
@@ -402,7 +418,7 @@ public class WhatsAppService {
         return "ALTRO";
     }
     
-    private void collegaAllegatiTemporanei(String telefono, Long idTicket) {
+    private int collegaAllegatiTemporanei(String telefono, Long idTicket) {
 
         List<AllegatoTemporaneo> temporanei =
                 allegatoTemporaneoDao.findByTelefono(telefono);
@@ -419,6 +435,8 @@ public class WhatsAppService {
         }
 
         allegatoTemporaneoDao.deleteByTelefono(telefono);
+
+        return temporanei.size();
     }
     
     private String normalizeCategoria(String category) {
