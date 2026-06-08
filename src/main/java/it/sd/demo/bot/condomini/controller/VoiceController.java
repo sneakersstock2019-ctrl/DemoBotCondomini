@@ -236,15 +236,13 @@ public class VoiceController {
         return """
             <?xml version="1.0" encoding="UTF-8"?>
             <Response>
-                <Say language="it-IT" voice="%s">
-                    %s
-                </Say>
-				<Record action="/voice/recording"
-				        method="POST"
-				        maxLength="20"
-				        timeout="2"
-				        playBeep="false"
-				        trim="do-not-trim" />
+                <Say language="it-IT" voice="%s">%s</Say>
+                <Record action="/voice/recording"
+                        method="POST"
+                        maxLength="20"
+                        timeout="2"
+                        playBeep="false"
+                        trim="trim-silence"/>
             </Response>
             """.formatted(
                 TWILIO_VOICE,
