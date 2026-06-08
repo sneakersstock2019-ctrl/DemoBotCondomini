@@ -219,6 +219,23 @@ public class OpenAIService {
 			- "C'è una perdita d'acqua nell'androne"
 			- "Il portone condominiale non si chiude"
 			
+			SE il messaggio contiene esplicitamente uno di questi elementi:
+			- portone
+			- ascensore
+			- cancello
+			- citofono condominiale
+			- androne
+			- scale
+			- illuminazione scale
+			- cortile
+			- facciata
+			- tetto
+			
+			consideralo automaticamente parte comune.
+			
+			NON chiedere conferme.
+			Apri direttamente il ticket.
+			
 			AREA PRIVATA:
 			Se il problema è chiaramente privato, non aprire ticket.
 			Rispondi gentilmente spiegando che la segnalazione riguarda un'area privata e non può essere gestita come intervento condominiale.

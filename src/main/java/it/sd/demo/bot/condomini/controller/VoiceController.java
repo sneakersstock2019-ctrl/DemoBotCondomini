@@ -71,9 +71,8 @@ public class VoiceController {
         session.ultimaRegistrazioneAudio = null;
 
         return buildRecordResponse(
-                "Buongiorno " + utente.getNome()
-                        + ", sono Lucrezia. Vedo che sta chiamando per il condominio "
-                        + utente.getNomeCondominio()
+                "Ciao " + utente.getNome()
+                        + ", sono Lucrezia. "
                         + ". Mi descriva pure il problema."
         );
     }
@@ -107,43 +106,47 @@ public class VoiceController {
             if (session.registrazioniAudio != null) {
                 session.registrazioniAudio.add(recordingUrl + ".mp3");
             }
-
-            long t1 = System.currentTimeMillis();
-            File audioFile = twilioService.downloadRecording(recordingUrl);
-            long downloadMs = System.currentTimeMillis() - t1;
-
-            t1 = System.currentTimeMillis();
-            String speechResult = openAIService.transcribeAudio(audioFile);
-            long transcriptionMs = System.currentTimeMillis() - t1;
-
-            System.out.println("############################");
-            System.out.println("TRASCRIZIONE VOICE:");
-            System.out.println(speechResult);
-            System.out.println("TEMPI VOICE:");
-            System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
-            System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
-            System.out.println("############################");
             
-            if (speechResult == null || speechResult.isBlank()) {
-                System.out.println("ATTENZIONE: trascrizione vuota");
-                return buildRecordResponse(
-                        "Mi scusi, non ho sentito bene. Può ripetere?"
-                );
-            }
+            return buildProcessingRedirectResponse(
+                    "Perfetto, ho ricevuto la richiesta. Dammi solo un secondo, verifico subito."
+            );
 
-            t1 = System.currentTimeMillis();
-            String response = gestisciRispostaVocale(phone, utente, session, speechResult);
-            long aiTicketMs = System.currentTimeMillis() - t1;
-
-            long totaleMs = System.currentTimeMillis() - start;
-
-            System.out.println("############################");
-            System.out.println("TEMPI TOTALI VOICE:");
-            System.out.println("OPENAI + TICKET + TWIML MS = " + aiTicketMs);
-            System.out.println("TOTALE MS = " + totaleMs);
-            System.out.println("############################");
-
-            return response;
+//            long t1 = System.currentTimeMillis();
+//            File audioFile = twilioService.downloadRecording(recordingUrl);
+//            long downloadMs = System.currentTimeMillis() - t1;
+//
+//            t1 = System.currentTimeMillis();
+//            String speechResult = openAIService.transcribeAudio(audioFile);
+//            long transcriptionMs = System.currentTimeMillis() - t1;
+//
+//            System.out.println("############################");
+//            System.out.println("TRASCRIZIONE VOICE:");
+//            System.out.println(speechResult);
+//            System.out.println("TEMPI VOICE:");
+//            System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
+//            System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
+//            System.out.println("############################");
+//            
+//            if (speechResult == null || speechResult.isBlank()) {
+//                System.out.println("ATTENZIONE: trascrizione vuota");
+//                return buildRecordResponse(
+//                        "Mi scusi, non ho sentito bene. Può ripetere?"
+//                );
+//            }
+//
+//            t1 = System.currentTimeMillis();
+//            String response = gestisciRispostaVocale(phone, utente, session, speechResult);
+//            long aiTicketMs = System.currentTimeMillis() - t1;
+//
+//            long totaleMs = System.currentTimeMillis() - start;
+//
+//            System.out.println("############################");
+//            System.out.println("TEMPI TOTALI VOICE:");
+//            System.out.println("OPENAI + TICKET + TWIML MS = " + aiTicketMs);
+//            System.out.println("TOTALE MS = " + totaleMs);
+//            System.out.println("############################");
+//
+//            return response;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -153,6 +156,128 @@ public class VoiceController {
             System.out.println("############################");
             System.out.println("ERRORE VOICE");
             System.out.println("TOTALE MS = " + totaleMs);
+            System.out.println("############################");
+
+            return buildRecordResponse(
+                    "Mi scusi, ho avuto un problema nel capire il messaggio. Può ripetere?"
+            );
+        }
+    }
+    
+    @PostMapping(value = "/process", produces = "application/xml")
+    public String process(@RequestParam(value = "From", required = false) String from) {
+
+        long start = System.currentTimeMillis();
+
+        String phone = phoneUtils.normalizePhone(from);
+
+        System.out.println("############################");
+        System.out.println("TWILIO PROCESS");
+        System.out.println("FROM = " + from);
+        System.out.println("PHONE = " + phone);
+        System.out.println("############################");
+
+        UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
+
+        if (session.ultimaRegistrazioneAudio == null || session.ultimaRegistrazioneAudio.isBlank()) {
+
+            System.out.println("Nessuna registrazione presente in sessione");
+
+            return buildRecordResponse(
+                    "Mi scusi, non ho ricevuto correttamente il messaggio. Può ripetere?"
+            );
+        }
+
+        try {
+
+            Utente utente = utenteDao.findCondominoByTelefono(phone);
+
+            if (utente == null) {
+
+                voiceSessionService.removeSession(phone);
+
+                return buildSayResponse(
+                        "Mi dispiace, il numero non risulta abilitato al servizio."
+                );
+            }
+
+            long t1 = System.currentTimeMillis();
+
+            File audioFile =
+                    twilioService.downloadRecording(
+                            session.ultimaRegistrazioneAudio
+                    );
+
+            long downloadMs =
+                    System.currentTimeMillis() - t1;
+
+            t1 = System.currentTimeMillis();
+
+            String speechResult =
+                    openAIService.transcribeAudio(audioFile);
+
+            long transcriptionMs =
+                    System.currentTimeMillis() - t1;
+
+            System.out.println("############################");
+            System.out.println("TRASCRIZIONE PROCESS:");
+            System.out.println(speechResult);
+            System.out.println("############################");
+
+            System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
+            System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
+
+            session.ultimaRegistrazioneAudio = null;
+
+            if (speechResult == null || speechResult.isBlank()) {
+
+                long totaleMs =
+                        System.currentTimeMillis() - start;
+
+                System.out.println("ATTENZIONE: trascrizione vuota");
+                System.out.println("TOTALE PROCESS MS = " + totaleMs);
+
+                return buildRecordResponse(
+                        "Mi scusi, non ho sentito bene. Può ripetere il problema parlando dopo il messaggio?"
+                );
+            }
+
+            t1 = System.currentTimeMillis();
+
+            String response =
+                    gestisciRispostaVocale(
+                            phone,
+                            utente,
+                            session,
+                            speechResult
+                    );
+
+            long aiMs =
+                    System.currentTimeMillis() - t1;
+
+            long totaleMs =
+                    System.currentTimeMillis() - start;
+
+            System.out.println("############################");
+            System.out.println("TEMPI PROCESS:");
+            System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
+            System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
+            System.out.println("AI + DB + TWIML MS = " + aiMs);
+            System.out.println("TOTALE PROCESS MS = " + totaleMs);
+            System.out.println("############################");
+
+            return response;
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            long totaleMs =
+                    System.currentTimeMillis() - start;
+
+            System.out.println("############################");
+            System.out.println("ERRORE PROCESS");
+            System.out.println("TOTALE PROCESS MS = " + totaleMs);
             System.out.println("############################");
 
             return buildRecordResponse(
@@ -474,5 +599,20 @@ public class VoiceController {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&apos;");
+    }
+    
+    private String buildProcessingRedirectResponse(String message) {
+
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Response>
+                <Say language="it-IT" voice="%s">%s</Say>
+                <Pause length="1"/>
+                <Redirect method="POST">/voice/process</Redirect>
+            </Response>
+            """.formatted(
+                TWILIO_VOICE,
+                escapeXml(message)
+        );
     }
 }
