@@ -123,6 +123,13 @@ public class VoiceController {
             System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
             System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
             System.out.println("############################");
+            
+            if (speechResult == null || speechResult.isBlank()) {
+                System.out.println("ATTENZIONE: trascrizione vuota");
+                return buildRecordResponse(
+                        "Mi scusi, non ho sentito bene. Può ripetere?"
+                );
+            }
 
             t1 = System.currentTimeMillis();
             String response = gestisciRispostaVocale(phone, utente, session, speechResult);
@@ -346,10 +353,11 @@ public class VoiceController {
             <Response>
                 <Say language="it-IT" voice="%s">%s</Say>
                 <Record action="/voice/recording"
-                        method="POST"
-                        maxLength="20"
-                        timeout="1"
-                        playBeep="false"/>
+	                    method="POST"
+	                    maxLength="30"
+	                    timeout="3"
+	                    playBeep="false"
+	                    trim="trim-silence"/>
             </Response>
             """.formatted(
                 TWILIO_VOICE,
