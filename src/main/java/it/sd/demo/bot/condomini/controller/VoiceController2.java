@@ -2,7 +2,11 @@ package it.sd.demo.bot.condomini.controller;
 
 import java.io.File;
 
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
 import it.sd.demo.bot.condomini.bean.ChatMessage;
@@ -21,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/voice")
 @RequiredArgsConstructor
-public class VoiceController {
+public class VoiceController2 {
 
     private static final String TWILIO_VOICE = "Polly.Bianca-Neural";
 
@@ -43,12 +47,6 @@ public class VoiceController {
 
         String phone = phoneUtils.normalizePhone(from);
 
-        System.out.println("############################");
-        System.out.println("TWILIO INCOMING CALL");
-        System.out.println("FROM = " + from);
-        System.out.println("PHONE = " + phone);
-        System.out.println("############################");
-
         Utente utente = utenteDao.findCondominoByTelefono(phone);
 
         if (utente == null) {
@@ -64,126 +62,45 @@ public class VoiceController {
         session.tentativiComprensione = 0;
         session.cronologiaMessaggi.clear();
 
-        if (session.registrazioniAudio != null) {
-            session.registrazioniAudio.clear();
-        }
-
-        session.ultimaRegistrazioneAudio = null;
-
         return buildRecordResponse(
-                "Buongiorno " + utente.getNome()
-                        + ", sono Lucrezia. Vedo che sta chiamando per il condominio "
-                        + utente.getNomeCondominio()
-                        + ". Mi descriva pure il problema."
+                "Buongiorno " + utente.getNome() +
+                ", sono Lucrezia. Vedo che sta chiamando per il condominio " +
+                utente.getNomeCondominio() +
+                ". Mi descriva pure il problema."
         );
     }
 
-    @PostMapping(value = "/recording", produces = "application/xml")
-    public String recording(@RequestParam("RecordingUrl") String recordingUrl,
-                            @RequestParam(value = "From", required = false) String from) {
-
-        long start = System.currentTimeMillis();
+    @PostMapping(value = "/gather", produces = "application/xml")
+    public String gather(@RequestParam(value = "SpeechResult", required = false) String speechResult,
+                         @RequestParam(value = "From", required = false) String from) {
 
         String phone = phoneUtils.normalizePhone(from);
 
-        System.out.println("############################");
-        System.out.println("TWILIO RECORDING RECEIVED");
-        System.out.println("FROM = " + from);
-        System.out.println("PHONE = " + phone);
-        System.out.println("RecordingUrl = " + recordingUrl);
-        System.out.println("############################");
+        Utente utente = utenteDao.findCondominoByTelefono(phone);
 
-        try {
-            Utente utente = utenteDao.findCondominoByTelefono(phone);
-
-            if (utente == null) {
-                voiceSessionService.removeSession(phone);
-                return buildSayResponse("Mi dispiace, il numero non risulta abilitato al servizio.");
-            }
-
-            UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
-            session.nome = utente.getNome();
-
-            if (session.registrazioniAudio != null) {
-                session.registrazioniAudio.add(recordingUrl + ".mp3");
-            }
-
-            long t1 = System.currentTimeMillis();
-            File audioFile = twilioService.downloadRecording(recordingUrl);
-            long downloadMs = System.currentTimeMillis() - t1;
-
-            t1 = System.currentTimeMillis();
-            String speechResult = openAIService.transcribeAudio(audioFile);
-            long transcriptionMs = System.currentTimeMillis() - t1;
-
-            System.out.println("############################");
-            System.out.println("TRASCRIZIONE VOICE:");
-            System.out.println(speechResult);
-            System.out.println("TEMPI VOICE:");
-            System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
-            System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
-            System.out.println("############################");
-
-            t1 = System.currentTimeMillis();
-            String response = gestisciRispostaVocale(phone, utente, session, speechResult);
-            long aiTicketMs = System.currentTimeMillis() - t1;
-
-            long totaleMs = System.currentTimeMillis() - start;
-
-            System.out.println("############################");
-            System.out.println("TEMPI TOTALI VOICE:");
-            System.out.println("OPENAI + TICKET + TWIML MS = " + aiTicketMs);
-            System.out.println("TOTALE MS = " + totaleMs);
-            System.out.println("############################");
-
-            return response;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-
-            long totaleMs = System.currentTimeMillis() - start;
-
-            System.out.println("############################");
-            System.out.println("ERRORE VOICE");
-            System.out.println("TOTALE MS = " + totaleMs);
-            System.out.println("############################");
-
-            return buildRecordResponse(
-                    "Mi scusi, ho avuto un problema nel capire il messaggio. Può ripetere?"
-            );
+        if (utente == null) {
+            voiceSessionService.removeSession(phone);
+            return buildSayResponse("Mi dispiace, il numero non risulta abilitato al servizio.");
         }
-    }
 
-    private String gestisciRispostaVocale(String phone,
-                                          Utente utente,
-                                          UserSession session,
-                                          String speechResult) {
+        UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
+        session.nome = utente.getNome();
 
         if (speechResult == null || speechResult.isBlank()) {
             session.tentativiComprensione++;
 
             if (session.tentativiComprensione >= 3) {
                 voiceSessionService.removeSession(phone);
-                return buildSayResponse(
-                        "Mi dispiace, non sono riuscita a capire bene. La invito a richiamare più tardi."
-                );
+                return buildSayResponse("Mi dispiace, non sono riuscita a capire bene. La invito a richiamare più tardi.");
             }
 
-            return buildRecordResponse(
-                    "Mi scusi, non ho capito bene. Può ripetere il problema con poche parole?"
-            );
+            return buildRecordResponse("Mi scusi, non ho capito bene. Può ripetere il problema con poche parole?");
         }
 
         session.cronologiaMessaggi.add(new ChatMessage("user", speechResult));
 
-        long t1 = System.currentTimeMillis();
-
         String contestoCondominio =
                 condominioAiDao.getContestoAiByCondominio(utente.getIdCondominio());
-
-        long contestoMs = System.currentTimeMillis() - t1;
-
-        t1 = System.currentTimeMillis();
 
         AIResponse aiResponse =
                 openAIService.askLucreziaVoice(
@@ -192,14 +109,6 @@ public class VoiceController {
                         utente,
                         contestoCondominio
                 );
-
-        long openAiMs = System.currentTimeMillis() - t1;
-
-        System.out.println("############################");
-        System.out.println("TEMPI DETTAGLIO VOICE:");
-        System.out.println("CARICAMENTO CONTESTO DB MS = " + contestoMs);
-        System.out.println("OPENAI CHAT MS = " + openAiMs);
-        System.out.println("############################");
 
         String reply = aiResponse.getReply();
 
@@ -215,15 +124,9 @@ public class VoiceController {
             session.tentativiComprensione++;
 
             if (session.tentativiComprensione >= 3) {
-
                 Long idTicket = creaTicketGenerico(utente, session, speechResult);
-                voiceSessionService.removeSession(phone);
 
-                if (idTicket == null) {
-                    return buildSayResponse(
-                            "Mi dispiace, non sono riuscita ad aprire la segnalazione. La invito a riprovare più tardi."
-                    );
-                }
+                voiceSessionService.removeSession(phone);
 
                 return buildSayResponse(
                         "Grazie, ho raccolto le informazioni principali. Ho aperto una segnalazione generica. Il numero ticket è "
@@ -242,8 +145,6 @@ public class VoiceController {
                         ? aiResponse.getTicketDescription()
                         : buildDescrizioneDaCronologia(session, speechResult);
 
-        long tDb = System.currentTimeMillis();
-
         Long idTicket = ticketDao.insertTicket(
                 utente.getIdCondominio(),
                 utente.getId(),
@@ -253,15 +154,11 @@ public class VoiceController {
                 descrizioneTicket
         );
 
-        long insertTicketMs = System.currentTimeMillis() - tDb;
-
         if (idTicket == null) {
             return buildSayResponse(
                     "Mi dispiace, ho capito la segnalazione ma non sono riuscita ad aprire il ticket."
             );
         }
-
-        tDb = System.currentTimeMillis();
 
         ticketConversazioneDao.insertConversazione(
                 idTicket,
@@ -271,35 +168,117 @@ public class VoiceController {
                 null
         );
 
-        if (session.registrazioniAudio != null) {
-            for (String urlAudio : session.registrazioniAudio) {
-                ticketConversazioneDao.insertConversazione(
-                        idTicket,
-                        "TELEFONO",
-                        "AUDIO",
-                        null,
-                        urlAudio
-                );
-            }
-        }
-
-        long insertConversazioniMs = System.currentTimeMillis() - tDb;
-
-        System.out.println("############################");
-        System.out.println("TEMPI DB VOICE:");
-        System.out.println("INSERT TICKET MS = " + insertTicketMs);
-        System.out.println("INSERT CONVERSAZIONI MS = " + insertConversazioniMs);
-        System.out.println("############################");
-
         voiceSessionService.removeSession(phone);
 
         return buildSayResponse(
-                "Perfetto, grazie " + utente.getNome()
-                        + ". Ho aperto il ticket numero " + idTicket
-                        + " per il condominio " + utente.getNomeCondominio()
-                        + ". Categoria " + categoria
-                        + ", priorità " + priorita
-                        + ". Riceverà aggiornamenti appena possibile."
+                "Perfetto, grazie " + utente.getNome() +
+                ". Ho aperto il ticket numero " + idTicket +
+                " per il condominio " + utente.getNomeCondominio() +
+                ". Categoria " + categoria +
+                ", priorità " + priorita +
+                ". Riceverà aggiornamenti appena possibile."
+        );
+    }
+    
+//    @PostMapping(value = "/recording", produces = "application/xml")
+//    public String recording(@RequestParam("RecordingUrl") String recordingUrl,
+//                            @RequestParam(value = "From", required = false) String from) {
+//
+//        String phone = phoneUtils.normalizePhone(from);
+//        Utente utente = utenteDao.findCondominoByTelefono(phone);
+//
+//        if (utente == null) {
+//            return buildSayResponse("Mi dispiace, il numero non risulta abilitato al servizio.");
+//        }
+//
+//        UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
+//        session.nome = utente.getNome();
+//        session.registrazioniAudio.add(recordingUrl + ".mp3");
+//
+//        try {
+//            File audioFile = twilioService.downloadRecording(recordingUrl);
+//            String speechResult = openAIService.transcribeAudio(audioFile);
+//
+//            return gestisciRispostaVocale(phone, utente, session, speechResult);
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return buildRecordResponse("Mi scusi, non sono riuscita a capire bene. Può ripetere il problema?");
+//        }
+//    }
+    
+    @PostMapping(value = "/recording", produces = "application/xml")
+    public String recording(@RequestParam("RecordingUrl") String recordingUrl,
+                            @RequestParam(value = "From", required = false) String from) {
+
+        String phone = phoneUtils.normalizePhone(from);
+
+        UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
+
+        session.ultimaRegistrazioneAudio = recordingUrl;
+
+        if (session.registrazioniAudio != null) {
+            session.registrazioniAudio.add(recordingUrl + ".mp3");
+        }
+
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Response>
+                <Say language="it-IT" voice="%s">
+                    Perfetto, ho ricevuto la richiesta. Verifico subito le informazioni.
+                </Say>
+                <Redirect method="POST">/voice/process</Redirect>
+            </Response>
+            """.formatted(TWILIO_VOICE);
+    }
+    
+    @PostMapping(value = "/process", produces = "application/xml")
+    public String process(@RequestParam(value = "From", required = false) String from) {
+
+        String phone = phoneUtils.normalizePhone(from);
+
+        UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
+
+        if (session.ultimaRegistrazioneAudio == null || session.ultimaRegistrazioneAudio.isBlank()) {
+            return buildRecordResponse("Mi scusi, non ho ricevuto correttamente il messaggio. Può ripetere?");
+        }
+
+        try {
+            File audioFile = twilioService.downloadRecording(session.ultimaRegistrazioneAudio);
+
+            String speechResult = openAIService.transcribeAudio(audioFile);
+
+            session.ultimaRegistrazioneAudio = null;
+
+            Utente utente = utenteDao.findCondominoByTelefono(phone);
+
+            if (utente == null) {
+                voiceSessionService.removeSession(phone);
+                return buildSayResponse("Mi dispiace, il numero non risulta abilitato al servizio.");
+            }
+
+            return gestisciRispostaVocale(phone, utente, session, speechResult);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            return buildRecordResponse(
+                    "Mi scusi, ho avuto un problema nel capire il messaggio. Può ripetere?"
+            );
+        }
+    }
+    
+    private String buildProcessingRedirectResponse(String message) {
+
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Response>
+                <Say language="it-IT" voice="%s">%s</Say>
+                <Redirect method="POST">/voice/process</Redirect>
+            </Response>
+            """.formatted(
+                TWILIO_VOICE,
+                escapeXml(message)
         );
     }
 
@@ -322,18 +301,6 @@ public class VoiceController {
                     buildConversazioneOriginale(session),
                     null
             );
-
-            if (session.registrazioniAudio != null) {
-                for (String urlAudio : session.registrazioniAudio) {
-                    ticketConversazioneDao.insertConversazione(
-                            idTicket,
-                            "TELEFONO",
-                            "AUDIO",
-                            null,
-                            urlAudio
-                    );
-                }
-            }
         }
 
         return idTicket;
@@ -362,21 +329,16 @@ public class VoiceController {
         return """
             <?xml version="1.0" encoding="UTF-8"?>
             <Response>
-                <Say language="it-IT" voice="%s">%s</Say>
+                <Say language="it-IT" voice="%s">
+                    %s
+                </Say>
             </Response>
-            """.formatted(
-                TWILIO_VOICE,
-                escapeXml(message)
-        );
+            """.formatted(TWILIO_VOICE, escapeXml(message));
     }
 
     private String buildConversazioneOriginale(UserSession session) {
 
         StringBuilder sb = new StringBuilder();
-
-        if (session == null || session.cronologiaMessaggi == null) {
-            return "";
-        }
 
         for (ChatMessage m : session.cronologiaMessaggi) {
             if ("user".equals(m.getRole())) {
@@ -395,11 +357,9 @@ public class VoiceController {
 
         StringBuilder sb = new StringBuilder();
 
-        if (session != null && session.cronologiaMessaggi != null) {
-            for (ChatMessage m : session.cronologiaMessaggi) {
-                if ("user".equals(m.getRole())) {
-                    sb.append(m.getContent()).append(" ");
-                }
+        for (ChatMessage m : session.cronologiaMessaggi) {
+            if ("user".equals(m.getRole())) {
+                sb.append(m.getContent()).append(" ");
             }
         }
 
@@ -466,5 +426,71 @@ public class VoiceController {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&apos;");
+    }
+    
+    private String gestisciRispostaVocale(String phone,
+    		Utente utente,
+    		UserSession session,
+    		String speechResult) {
+
+    	session.cronologiaMessaggi.add(new ChatMessage("user", speechResult));
+
+    	String contestoCondominio =
+    			condominioAiDao.getContestoAiByCondominio(utente.getIdCondominio());
+
+    	AIResponse aiResponse =
+    			openAIService.askLucreziaVoice(
+    					speechResult,
+    					session,
+    					utente,
+    					contestoCondominio
+    					);
+
+    	String reply = aiResponse.getReply();
+
+    	if (reply == null || reply.isBlank()) {
+    		reply = "Mi scusi, può ripetere meglio il problema?";
+    	}
+
+    	session.cronologiaMessaggi.add(new ChatMessage("assistant", reply));
+
+    	if (!aiResponse.isOpenTicket()) {
+    		return buildRecordResponse(reply);
+    	}
+
+    	Long idTicket = ticketDao.insertTicket(
+    			utente.getIdCondominio(),
+    			utente.getId(),
+    			normalizeCategoria(aiResponse.getCategory()),
+    			normalizePriorita(aiResponse.getPriority()),
+    			"TELEFONO",
+    			aiResponse.getTicketDescription()
+    			);
+
+    	ticketConversazioneDao.insertConversazione(
+    			idTicket,
+    			"TELEFONO",
+    			"TRASCRIZIONE",
+    			buildConversazioneOriginale(session),
+    			null
+    			);
+
+    	for (String urlAudio : session.registrazioniAudio) {
+    		ticketConversazioneDao.insertConversazione(
+    				idTicket,
+    				"TELEFONO",
+    				"AUDIO",
+    				null,
+    				urlAudio
+    				);
+    	}
+
+    	voiceSessionService.removeSession(phone);
+
+    	return buildSayResponse(
+    			"Perfetto, grazie " + utente.getNome() +
+    			". Ho aperto il ticket numero " + idTicket +
+    			". Riceverà aggiornamenti appena possibile."
+    			);
     }
 }

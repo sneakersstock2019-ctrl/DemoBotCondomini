@@ -21,4 +21,6 @@ public class UserSession {
     
     public List<String> registrazioniAudio = new ArrayList<>();
     
+    public String ultimaRegistrazioneAudio;
+    
 }
