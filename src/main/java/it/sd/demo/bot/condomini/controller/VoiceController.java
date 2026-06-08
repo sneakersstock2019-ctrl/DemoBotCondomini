@@ -239,11 +239,12 @@ public class VoiceController {
                 <Say language="it-IT" voice="%s">
                     %s
                 </Say>
-                <Record action="/voice/recording"
-                        method="POST"
-                        maxLength="30"
-                        playBeep="false"
-                        trim="trim-silence" />
+				<Record action="/voice/recording"
+				        method="POST"
+				        maxLength="20"
+				        timeout="2"
+				        playBeep="false"
+				        trim="do-not-trim" />
             </Response>
             """.formatted(
                 TWILIO_VOICE,
