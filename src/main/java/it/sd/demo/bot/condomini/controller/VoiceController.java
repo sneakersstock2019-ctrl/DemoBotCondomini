@@ -102,6 +102,7 @@ public class VoiceController {
 
             UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
             session.nome = utente.getNome();
+            session.ultimaRegistrazioneAudio = recordingUrl;
 
             if (session.registrazioniAudio != null) {
                 session.registrazioniAudio.add(recordingUrl + ".mp3");
@@ -110,43 +111,6 @@ public class VoiceController {
             return buildProcessingRedirectResponse(
                     "Perfetto, ho ricevuto la richiesta. Dammi solo un secondo, verifico subito."
             );
-
-//            long t1 = System.currentTimeMillis();
-//            File audioFile = twilioService.downloadRecording(recordingUrl);
-//            long downloadMs = System.currentTimeMillis() - t1;
-//
-//            t1 = System.currentTimeMillis();
-//            String speechResult = openAIService.transcribeAudio(audioFile);
-//            long transcriptionMs = System.currentTimeMillis() - t1;
-//
-//            System.out.println("############################");
-//            System.out.println("TRASCRIZIONE VOICE:");
-//            System.out.println(speechResult);
-//            System.out.println("TEMPI VOICE:");
-//            System.out.println("DOWNLOAD AUDIO MS = " + downloadMs);
-//            System.out.println("TRASCRIZIONE MS = " + transcriptionMs);
-//            System.out.println("############################");
-//            
-//            if (speechResult == null || speechResult.isBlank()) {
-//                System.out.println("ATTENZIONE: trascrizione vuota");
-//                return buildRecordResponse(
-//                        "Mi scusi, non ho sentito bene. Può ripetere?"
-//                );
-//            }
-//
-//            t1 = System.currentTimeMillis();
-//            String response = gestisciRispostaVocale(phone, utente, session, speechResult);
-//            long aiTicketMs = System.currentTimeMillis() - t1;
-//
-//            long totaleMs = System.currentTimeMillis() - start;
-//
-//            System.out.println("############################");
-//            System.out.println("TEMPI TOTALI VOICE:");
-//            System.out.println("OPENAI + TICKET + TWIML MS = " + aiTicketMs);
-//            System.out.println("TOTALE MS = " + totaleMs);
-//            System.out.println("############################");
-//
-//            return response;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -480,7 +444,7 @@ public class VoiceController {
                 <Record action="/voice/recording"
 	                    method="POST"
 	                    maxLength="30"
-	                    timeout="3"
+	                    timeout="2"
 	                    playBeep="false"
 	                    trim="trim-silence"/>
             </Response>
