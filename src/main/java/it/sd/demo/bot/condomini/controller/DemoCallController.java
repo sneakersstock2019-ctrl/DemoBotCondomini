@@ -21,6 +21,9 @@ public class DemoCallController {
                              @RequestParam String priorita) {
 
         String numero = normalizeItalianPhone(telefono);
+        
+        System.out.println("nomeFornitore = [" + nomeFornitore + "]");
+        System.out.println("condominio = [" + condominio + "]");
 
         twilioCallService.notifyTicketCreated(
                 numero,
