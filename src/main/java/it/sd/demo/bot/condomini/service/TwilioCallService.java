@@ -13,76 +13,87 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class TwilioCallService {
 
-    @Value("${TWILIO_ACCOUNT_SID}")
-    private String accountSid;
+	@Value("${TWILIO_ACCOUNT_SID}")
+	private String accountSid;
 
-    @Value("${TWILIO_AUTH_TOKEN}")
-    private String authToken;
-    
-    @Value("${TWILIO_FROM_NUMBER}")
-    private String fromNumber;
+	@Value("${TWILIO_AUTH_TOKEN}")
+	private String authToken;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+	@Value("${TWILIO_FROM_NUMBER}")
+	private String fromNumber;
 
-    public void notifyTicketCreated(String toNumber) {
+	private final RestTemplate restTemplate = new RestTemplate();
 
-        String message = """
-                Buongiorno, sono Lucrezia.
-                È stato creato un nuovo ticket per il condominio Viale Europa.
-                La segnalazione riguarda un problema elettrico sulle scale condominiali, la priorità assegnata è media.
-                Ti preghiamo di accedere alla Dashboard di Lucrezia per gestirlo. 
-                Grazie.
-                """;
+	public void notifyTicketCreated(String toNumber,
+			Long idTicket,
+			String condominio,
+			String categoria,
+			String priorita) {
 
-        String twiml = """
-                <?xml version="1.0" encoding="UTF-8"?>
-                <Response>
-                    <Say language="it-IT" voice="Polly.Bianca-Neural">
-                        %s
-                    </Say>
-                </Response>
-                """.formatted(escapeXml(message));
+		String message = """
+				Buongiorno, sono Lucrezia.
+				Ti è stato assegnato un nuovo ticket numero %d.
+				Condominio %s.
+				Categoria %s.
+				Priorità %s.
+				Ti ho inviato un messaggio WhatsApp con tutti i dettagli.
+				Grazie.
+				""".formatted(
+						idTicket,
+						condominio,
+						categoria,
+						priorita
+						);
 
-        String url = "https://api.twilio.com/2010-04-01/Accounts/"
-                + accountSid
-                + "/Calls.json";
+		String twiml = """
+				<?xml version="1.0" encoding="UTF-8"?>
+				<Response>
+				<Say language="it-IT" voice="Polly.Bianca-Neural">
+				%s
+				</Say>
+				</Response>
+				""".formatted(escapeXml(message));
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+		String url = "https://api.twilio.com/2010-04-01/Accounts/"
+				+ accountSid
+				+ "/Calls.json";
 
-        String auth = accountSid + ":" + authToken;
-        String encodedAuth = Base64.getEncoder()
-                .encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        headers.set("Authorization", "Basic " + encodedAuth);
+		String auth = accountSid + ":" + authToken;
+		String encodedAuth = Base64.getEncoder()
+				.encodeToString(auth.getBytes(StandardCharsets.UTF_8));
 
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("To", toNumber);
-        body.add("From", fromNumber);
-        body.add("Twiml", twiml);
+		headers.set("Authorization", "Basic " + encodedAuth);
 
-        HttpEntity<MultiValueMap<String, String>> request =
-                new HttpEntity<>(body, headers);
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("To", toNumber);
+		body.add("From", fromNumber);
+		body.add("Twiml", twiml);
 
-        System.out.println("Invio chiamata Twilio verso: " + toNumber);
+		HttpEntity<MultiValueMap<String, String>> request =
+				new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> response =
-                restTemplate.postForEntity(url, request, String.class);
+		System.out.println("Invio chiamata Twilio verso: " + toNumber);
 
-        System.out.println("Response Twilio:");
-        System.out.println(response.getBody());
-    }
+		ResponseEntity<String> response =
+				restTemplate.postForEntity(url, request, String.class);
 
-    private String escapeXml(String text) {
-        if (text == null) {
-            return "";
-        }
+		System.out.println("Response Twilio:");
+		System.out.println(response.getBody());
+	}
 
-        return text
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
-    }
+	private String escapeXml(String text) {
+		if (text == null) {
+			return "";
+		}
+
+		return text
+				.replace("&", "&amp;")
+				.replace("<", "&lt;")
+				.replace(">", "&gt;")
+				.replace("\"", "&quot;")
+				.replace("'", "&apos;");
+	}
 }

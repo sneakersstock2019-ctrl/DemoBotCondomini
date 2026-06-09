@@ -14,10 +14,41 @@ public class DemoCallController {
 
     @GetMapping("/call-ticket")
     public String callTicket(@RequestParam String telefono,
-                             @RequestParam(required = false) Long idTicket) {
+                             @RequestParam Long idTicket,
+                             @RequestParam String condominio,
+                             @RequestParam String categoria,
+                             @RequestParam String priorita) {
 
-        twilioCallService.notifyTicketCreated("+" + telefono);
+        String numero = normalizeItalianPhone(telefono);
 
-        return "Chiamata inviata";
+        twilioCallService.notifyTicketCreated(
+                numero,
+                idTicket,
+                condominio,
+                categoria,
+                priorita
+        );
+
+        return "Chiamata inviata verso " + numero;
     }
+
+    private String normalizeItalianPhone(String telefono) {
+
+        if (telefono == null || telefono.isBlank()) {
+            return null;
+        }
+
+        String numero = telefono.trim().replace(" ", "");
+
+        if (numero.startsWith("+")) {
+            return numero;
+        }
+
+        if (numero.startsWith("39")) {
+            return "+" + numero;
+        }
+
+        return "+39" + numero;
+    }
+    
 }
