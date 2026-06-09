@@ -13,9 +13,10 @@ public class DemoCallController {
     private TwilioCallService twilioCallService;
 
     @GetMapping("/call-ticket")
-    public String callTicket() {
+    public String callTicket(@RequestParam String telefono,
+                             @RequestParam(required = false) Long idTicket) {
 
-        twilioCallService.notifyTicketCreated("+393492123304");
+        twilioCallService.notifyTicketCreated("+" + telefono);
 
         return "Chiamata inviata";
     }
