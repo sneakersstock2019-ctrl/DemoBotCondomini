@@ -1,7 +1,13 @@
 package it.sd.demo.bot.condomini.controller;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import it.sd.demo.bot.condomini.service.TwilioCallService;
 
@@ -22,8 +28,15 @@ public class DemoCallController {
 
         String numero = normalizeItalianPhone(telefono);
         
-        System.out.println("nomeFornitore = [" + nomeFornitore + "]");
-        System.out.println("condominio = [" + condominio + "]");
+        nomeFornitore = URLDecoder.decode(
+                nomeFornitore,
+                StandardCharsets.UTF_8
+        );
+
+        condominio = URLDecoder.decode(
+                condominio,
+                StandardCharsets.UTF_8
+        );
 
         twilioCallService.notifyTicketCreated(
                 numero,
