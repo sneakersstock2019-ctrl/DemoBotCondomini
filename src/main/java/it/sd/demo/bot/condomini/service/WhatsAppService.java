@@ -218,7 +218,7 @@ public class WhatsAppService {
                     Numero ticket: #%d
 
                     Monitora qui:
-                    https://lucreziadashboard-production.up.railway.app/LucreziaDashboard/ticket/open/%d
+                    https://lucreziadashboard-production.up.railway.app/LucreziaDashboard/condomino/ticket/open/%d
                     """.formatted(idTicket, idTicket);
 
             resetSessioneDopoTicket(userSession);
@@ -271,7 +271,7 @@ public class WhatsAppService {
                             "Ticket aperto correttamente ✅\n" +
                             "Numero ticket: #" + idTicket + "\n\n" +
                             "Puoi monitorarlo qui:\n" +
-                            "https://lucreziadashboard-production.up.railway.app/LucreziaDashboard/ticket/open/" + idTicket;
+                            "https://lucreziadashboard-production.up.railway.app/LucreziaDashboard/condomino/ticket/open/" + idTicket;
 
             resetSessioneDopoTicket(userSession);
         }

@@ -196,6 +196,7 @@ public class OpenAIService {
 			  1. zona o luogo del problema
 			  2. tipo di guasto
 			  3. se riguarda parte comune o privata
+			  4. in caso di segnalazioni riguardanti scale o ascensore chiedere il piano in cui è presente il problema
 			- Se manca solo un dettaglio, fai una domanda mirata.
 			- Non fare più di una domanda alla volta.
 			
