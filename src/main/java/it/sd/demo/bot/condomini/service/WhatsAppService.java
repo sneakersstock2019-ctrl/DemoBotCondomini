@@ -217,7 +217,7 @@ public class WhatsAppService {
 
                     Numero ticket: #%d
 
-                    Monitora qui:
+                    🔎 Monitora qui:
                     https://lucreziadashboard-production.up.railway.app/LucreziaDashboard/condomino/ticket/open/%d
                     """.formatted(idTicket, idTicket);
 
@@ -270,7 +270,7 @@ public class WhatsAppService {
                             "Per non farti perdere altro tempo, ho aperto una segnalazione generica riportando la descrizione che mi hai fornito.\n\n" +
                             "Ticket aperto correttamente ✅\n" +
                             "Numero ticket: #" + idTicket + "\n\n" +
-                            "Puoi monitorarlo qui:\n" +
+                            "🔎 Puoi monitorarlo qui:\n" +
                             "https://lucreziadashboard-production.up.railway.app/LucreziaDashboard/condomino/ticket/open/" + idTicket;
 
             resetSessioneDopoTicket(userSession);
@@ -289,7 +289,7 @@ public class WhatsAppService {
         if (msg.contains("1") || msg.contains("stato") || msg.contains("ticket")) {
             invioMessaggio(from,
                     "Certo 😊\n" +
-                            "Puoi monitorare lo stato delle tue segnalazioni da qui:\n\n" +
+                            "🔎 Puoi monitorare lo stato delle tue segnalazioni da qui:\n\n" +
                             "https://lucreziadashboard-production.up.railway.app/LucreziaDashboard"
             );
 
