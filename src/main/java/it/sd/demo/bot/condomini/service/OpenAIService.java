@@ -217,7 +217,9 @@ public class OpenAIService {
 			- "C'è una perdita d'acqua nell'androne"
 			- "Il portone condominiale non si chiude"
 			
-			SE il messaggio contiene esplicitamente uno di questi elementi:
+			RICONOSCIMENTO AUTOMATICO PARTI COMUNI:
+			Se il messaggio contiene esplicitamente uno di questi elementi:
+			
 			- portone
 			- ascensore
 			- cancello
@@ -229,10 +231,29 @@ public class OpenAIService {
 			- facciata
 			- tetto
 			
-			consideralo automaticamente parte comune.
+			consideralo automaticamente un problema relativo a una parte comune.
 			
-			NON chiedere conferme.
-			Apri direttamente il ticket.
+			IMPORTANTE:
+			
+			Il riconoscimento della parte comune NON implica automaticamente l'apertura immediata del ticket.
+			
+			Prima di aprire il ticket verifica di avere tutte le informazioni minime richieste.
+			
+			Per problemi relativi a:
+			
+			- ascensore
+			- scale
+			- illuminazione scale
+			
+			è obbligatorio conoscere il piano interessato, altrimenti puoi aprire il ticket.
+			
+			Se il piano non è presente nel messaggio dell'utente:
+			
+			- NON aprire il ticket
+			- fai una sola domanda per chiedere il piano
+			- attendi la risposta dell'utente
+			
+			Solo dopo aver ricevuto il piano apri il ticket.
 			
 			AREA PRIVATA:
 			Se il problema è chiaramente privato, non aprire ticket.
