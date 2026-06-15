@@ -176,16 +176,13 @@ public class VoiceController {
                             session.ultimaRegistrazioneAudio
                     );
 
-            long downloadMs =
-                    System.currentTimeMillis() - t1;
+            long downloadMs = System.currentTimeMillis() - t1;
 
             t1 = System.currentTimeMillis();
 
-            String speechResult =
-                    openAIService.transcribeAudio(audioFile);
+            String speechResult = openAIService.transcribeAudio(audioFile);
 
-            long transcriptionMs =
-                    System.currentTimeMillis() - t1;
+            long transcriptionMs = System.currentTimeMillis() - t1;
 
             System.out.println("############################");
             System.out.println("TRASCRIZIONE PROCESS:");
@@ -448,7 +445,7 @@ public class VoiceController {
                 <Record action="/voice/recording"
 	                    method="POST"
 	                    maxLength="30"
-	                    timeout="2"
+	                    timeout="3"
 	                    playBeep="false"
 	                    trim="trim-silence"/>
             </Response>
