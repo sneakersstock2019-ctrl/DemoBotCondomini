@@ -572,7 +572,6 @@ public class VoiceController {
             <?xml version="1.0" encoding="UTF-8"?>
             <Response>
                 <Say language="it-IT" voice="%s">%s</Say>
-                <Pause length="1"/>
                 <Redirect method="POST">/voice/process</Redirect>
             </Response>
             """.formatted(
