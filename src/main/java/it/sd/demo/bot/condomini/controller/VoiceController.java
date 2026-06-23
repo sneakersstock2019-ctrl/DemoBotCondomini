@@ -430,11 +430,9 @@ public class VoiceController {
 
         return buildSayResponse(
                 "Perfetto, grazie " + utente.getNome()
-                        + ". Ho aperto il ticket numero " + idTicket
-                        + " per il condominio " + utente.getNomeCondominio()
-                        + ". Categoria " + categoria
-                        + ", priorità " + priorita
-                        + ". Riceverà aggiornamenti appena possibile."
+                        + ". Ho registrato correttamente la segnalazione e verrà presa in carico quanto prima."
+                        + ". Sarà mia premura gestirla al meglio, riceverà aggiornamenti appena possibile. "
+                        + getRandomClosingMessage()
         );
     }
 
@@ -635,6 +633,55 @@ public class VoiceController {
             "Ok, controllo e ti rispondo subito."
     		);
 
+    private String getRandomClosingMessage() {
+        return CLOSING_MESSAGES.get(
+                ThreadLocalRandom.current().nextInt(CLOSING_MESSAGES.size())
+        );
+    }
+    
+    private static final List<String> CLOSING_MESSAGES = List.of(
+
+    	    "È stato un piacere aiutarla. Per qualsiasi necessità potrà richiamarmi oppure scrivermi tramite WhatsApp. Le auguro una buona giornata.",
+
+    	    "Grazie per avermi contattata. Rimango a disposizione per qualsiasi segnalazione o richiesta relativa al condominio. Buona giornata.",
+
+    	    "Perfetto, ho registrato tutto correttamente. Quando desidera può ricontattarmi telefonicamente oppure tramite WhatsApp. Arrivederci.",
+
+    	    "Sono stata felice di aiutarla. Se dovesse avere altre necessità, potrà contattarmi in qualsiasi momento. Buona giornata.",
+
+    	    "La ringrazio per la chiamata. Rimango a disposizione per qualsiasi esigenza relativa al condominio. Arrivederci.",
+
+    	    "Grazie per le informazioni. Se avrà bisogno di ulteriori aggiornamenti o nuove segnalazioni, potrà sempre contattarmi anche tramite WhatsApp. Buona giornata.",
+
+    	    "Perfetto, la sua richiesta è stata registrata. Rimango a disposizione per qualsiasi altra necessità. Arrivederci.",
+
+    	    "La ringrazio per avermi contattata. Per qualsiasi necessità futura potrà richiamarmi oppure scrivermi su WhatsApp. Buona giornata.",
+    	    
+    	    "Le auguro una buona giornata e resto a disposizione per qualsiasi necessità.",
+    	    
+    	    "Sono stata felice di aiutarla. Quando vuole può richiamarmi oppure scrivermi tramite WhatsApp."
+    	);
+    
+    private String getRandomClosingStatusMessage() {
+        return CLOSING_STATUS_MESSAGES.get(
+                ThreadLocalRandom.current().nextInt(CLOSING_STATUS_MESSAGES.size())
+        );
+    }
+    
+    private static final List<String> CLOSING_STATUS_MESSAGES = List.of(
+    	    "Spero di esserle stata utile. Per qualsiasi aggiornamento può ricontattarmi quando desidera. Buona giornata.",
+
+    	    "Grazie per avermi contattata. Rimango a disposizione per qualsiasi segnalazione o richiesta sul condominio.",
+
+    	    "Se avrà bisogno di ulteriori aggiornamenti, potrà richiamarmi in qualsiasi momento oppure scrivermi su WhatsApp. Buona giornata.",
+
+    	    "È stato un piacere aiutarla. Se dovesse avere altre necessità, potrà contattarmi in qualsiasi momento.",
+    	    
+    	    "Sono stata felice di aiutarla. Quando vuole può richiamarmi oppure scrivermi tramite WhatsApp.",
+    	    
+    	    "Le auguro una buona giornata e resto a disposizione per qualsiasi necessità."
+    	);
+    
     private String gestisciSceltaTicket(String phone,
     		Utente utente,
     		UserSession session,
@@ -734,7 +781,7 @@ public class VoiceController {
     				);
     	}
 
-    	return buildSayResponse(buildTicketStatusVoiceMessage(ticket));
+    	return buildSayResponse(buildTicketStatusVoiceMessage(ticket) + " " + getRandomClosingStatusMessage());
     }
 
     private String buildTicketStatusVoiceMessage(TicketStatusInfo ticket) {
