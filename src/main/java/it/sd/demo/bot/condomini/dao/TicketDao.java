@@ -256,7 +256,7 @@ public class TicketDao {
             SELECT t.id
             FROM ticket t
             JOIN stati_ticket st ON st.id = t.id_stato
-            WHERE t.id_utente = ?
+            WHERE t.id_utente_apertura = ?
               AND st.codice NOT IN ('CHIUSO', 'ANNULLATO')
             ORDER BY t.data_apertura DESC
             """;
