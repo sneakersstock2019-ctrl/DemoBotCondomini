@@ -729,11 +729,13 @@ public class VoiceController {
 
     	if (normalized.contains("stato")
     	        || normalized.contains("aggiornamento")
+    	        || normalized.contains("aggiornamenti")
     	        || normalized.contains("a che punto")
     	        || normalized.contains("ticket")
     	        || normalized.contains("segnalazione aperta")
     	        || normalized.contains("come procede")
     	        || normalized.contains("intervento")
+    	        || normalized.contains("news")
     	        || normalized.contains("novità")) {
     	    return TicketChoiceIntent.STATUS;
     	}
