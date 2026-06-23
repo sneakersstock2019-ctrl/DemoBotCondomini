@@ -12,8 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.sd.demo.bot.condomini.bean.AIResponse;
 import it.sd.demo.bot.condomini.bean.ChatMessage;
+import it.sd.demo.bot.condomini.bean.TicketChoiceIntent;
+import it.sd.demo.bot.condomini.bean.TicketStatusInfo;
 import it.sd.demo.bot.condomini.bean.UserSession;
 import it.sd.demo.bot.condomini.bean.Utente;
+import it.sd.demo.bot.condomini.bean.VoiceSessionStep;
 import it.sd.demo.bot.condomini.dao.CondominioAiDao;
 import it.sd.demo.bot.condomini.dao.TicketConversazioneDao;
 import it.sd.demo.bot.condomini.dao.TicketDao;
@@ -62,10 +65,11 @@ public class VoiceController {
                     "Buongiorno, sono Lucrezia. Il numero da cui sta chiamando non risulta abilitato al servizio."
             );
         }
-
+        
         UserSession session = voiceSessionService.getOrCreateVoiceSession(phone);
+
         session.nome = utente.getNome();
-        session.step = "VOICE";
+        session.setCondominoId(utente.getId());
         session.primoMessaggio = true;
         session.tentativiComprensione = 0;
         session.cronologiaMessaggi.clear();
@@ -76,11 +80,33 @@ public class VoiceController {
 
         session.ultimaRegistrazioneAudio = null;
 
+        List<TicketStatusInfo> ticketAperti = ticketDao.findOpenTicketsByUtente(utente.getId());
+
+        if (!ticketAperti.isEmpty()) {
+
+            session.haTicketAperti = true;
+            session.setStep(VoiceSessionStep.WAIT_TICKET_CHOICE);
+            session.setOpenTicketIds(
+                    ticketAperti.stream()
+                            .map(TicketStatusInfo::getId)
+                            .toList()
+            );
+
+            return buildRecordResponse(
+                    "Ciao " + utente.getNome()
+                            + ", sono Lucrezia. Vedo che hai già una segnalazione aperta. "
+                            + "Vuoi conoscere lo stato della segnalazione oppure aprirne una nuova?"
+            );
+        }
+
+        session.haTicketAperti = false;
+        session.setStep(VoiceSessionStep.NEW_TICKET);
+
         return buildRecordResponse(
                 "Ciao " + utente.getNome()
-                        + ", sono Lucrezia. "
-                        + ". Mi descriva pure il problema."
+                        + ", sono Lucrezia. Mi descriva pure il problema."
         );
+        
     }
 
     @PostMapping(value = "/recording", produces = "application/xml")
@@ -268,6 +294,17 @@ public class VoiceController {
 
             return buildRecordResponse(
                     "Mi scusi, non ho capito bene. Può ripetere il problema con poche parole?"
+            );
+        }
+        
+        if (session.getStep() == VoiceSessionStep.WAIT_TICKET_CHOICE) {
+            return gestisciSceltaTicket(phone, utente, session, speechResult);
+        }
+
+        if (session.getStep() == VoiceSessionStep.WAIT_TICKET_STATUS_DETAIL) {
+            return buildRecordResponse(
+                    "Per ora posso leggere automaticamente lo stato solo quando c'è una singola segnalazione aperta. "
+                            + "Mi dica pure se vuole aprire una nuova segnalazione."
             );
         }
 
@@ -595,6 +632,156 @@ public class VoiceController {
             "Ho preso nota, un momento soltanto.",
             "D'accordo, faccio una verifica veloce.",
             "Ok, controllo e ti rispondo subito."
-    );
+    		);
+
+    private String gestisciSceltaTicket(String phone,
+    		Utente utente,
+    		UserSession session,
+    		String speechResult) {
+
+    	TicketChoiceIntent intent = classifyTicketChoice(speechResult);
+
+    	switch (intent) {
+
+    	case STATUS:
+    		return handleTicketStatus(phone, session);
+
+    	case NEW_TICKET:
+    		session.setStep(VoiceSessionStep.NEW_TICKET);
+    		session.tentativiComprensione = 0;
+    		session.cronologiaMessaggi.clear();
+
+    		return buildRecordResponse(
+    				"Va bene, mi descriva pure la nuova segnalazione."
+    				);
+
+    	default:
+    		session.tentativiComprensione++;
+
+    		if (session.tentativiComprensione >= 3) {
+    			voiceSessionService.removeSession(phone);
+    			return buildSayResponse(
+    					"Mi dispiace, non sono riuscita a capire la scelta. La invito a richiamare più tardi."
+    					);
+    		}
+
+    		return buildRecordResponse(
+    				"Mi scusi, non ho capito bene. Vuole sapere lo stato della segnalazione aperta oppure aprirne una nuova?"
+    				);
+    	}
+    }
+
+    private TicketChoiceIntent classifyTicketChoice(String text) {
+
+    	if (text == null || text.isBlank()) {
+    		return TicketChoiceIntent.UNKNOWN;
+    	}
+
+    	String normalized = text.toLowerCase();
+
+    	if (normalized.contains("stato")
+    			|| normalized.contains("segnalazione aperta")
+    			|| normalized.contains("ticket")
+    			|| normalized.contains("a che punto")
+    			|| normalized.contains("aggiornamento")
+    			|| normalized.contains("sapere")
+    			|| normalized.contains("come sta")
+    			|| normalized.contains("intervento")) {
+    		return TicketChoiceIntent.STATUS;
+    	}
+
+    	if (normalized.contains("nuova")
+    			|| normalized.contains("nuovo")
+    			|| normalized.contains("aprire")
+    			|| normalized.contains("apro")
+    			|| normalized.contains("segnalare")
+    			|| normalized.contains("segnalazione nuova")
+    			|| normalized.contains("altro problema")
+    			|| normalized.contains("un problema")) {
+    		return TicketChoiceIntent.NEW_TICKET;
+    	}
+
+    	return TicketChoiceIntent.UNKNOWN;
+    }
+
+    private String handleTicketStatus(String phone, UserSession session) {
+
+    	if (session.getOpenTicketIds() == null || session.getOpenTicketIds().isEmpty()) {
+    		voiceSessionService.removeSession(phone);
+    		return buildSayResponse(
+    				"Al momento non risultano segnalazioni aperte a suo nome."
+    				);
+    	}
+
+    	if (session.getOpenTicketIds().size() > 1) {
+    		session.setStep(VoiceSessionStep.WAIT_TICKET_STATUS_DETAIL);
+
+    		return buildRecordResponse(
+    				"Vedo che ha più segnalazioni aperte. "
+    						+ "Può dirmi a quale si riferisce? Ad esempio acqua, luce, ascensore, cancello o altro?"
+    				);
+    	}
+
+    	Long idTicket = session.getOpenTicketIds().get(0);
+
+    	TicketStatusInfo ticket = ticketDao.findTicketStatusById(idTicket);
+
+    	voiceSessionService.removeSession(phone);
+
+    	if (ticket == null) {
+    		return buildSayResponse(
+    				"Mi dispiace, non sono riuscita a recuperare lo stato della segnalazione."
+    				);
+    	}
+
+    	return buildSayResponse(buildTicketStatusVoiceMessage(ticket));
+    }
+
+    private String buildTicketStatusVoiceMessage(TicketStatusInfo ticket) {
+
+    	String stato = ticket.getStatoDescrizione();
+
+    	if (stato == null || stato.isBlank()) {
+    		stato = ticket.getStatoCodice();
+    	}
+
+    	if (stato == null || stato.isBlank()) {
+    		stato = "in lavorazione";
+    	}
+
+    	StringBuilder sb = new StringBuilder();
+
+    	sb.append("La sua segnalazione");
+
+    	if (ticket.getCategoria() != null && !ticket.getCategoria().isBlank()) {
+    		sb.append(" relativa a ").append(ticket.getCategoria());
+    	}
+
+    	sb.append(" risulta ").append(stato.toLowerCase()).append(". ");
+
+    	if (ticket.getNomeFornitore() != null && !ticket.getNomeFornitore().isBlank()) {
+    		sb.append("È stata assegnata al fornitore ")
+    		.append(ticket.getNomeFornitore())
+    		.append(". ");
+    	}
+
+    	if (ticket.getDataInterventoPrevista() != null) {
+    		sb.append("L'intervento è previsto per ")
+    		.append(formatDate(ticket.getDataInterventoPrevista()))
+    		.append(". ");
+    	} else {
+    		sb.append("Al momento non risulta ancora una data di intervento confermata. ");
+    	}
+
+    	sb.append("Riceverà aggiornamenti appena ci saranno novità.");
+
+    	return sb.toString();
+    }
+
+    private String formatDate(java.time.LocalDateTime dateTime) {
+    	return dateTime.format(
+    			java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+    			);
+    }
     
 }

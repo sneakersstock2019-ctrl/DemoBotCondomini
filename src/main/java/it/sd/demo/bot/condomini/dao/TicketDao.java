@@ -4,11 +4,15 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.sql.DataSource;
 
 import org.springframework.stereotype.Repository;
 
+import it.sd.demo.bot.condomini.bean.TicketStatusInfo;
 import lombok.RequiredArgsConstructor;
 
 @Repository
@@ -44,6 +48,109 @@ public class TicketDao {
         }
 
         return false;
+    }
+
+    public List<TicketStatusInfo> findOpenTicketsByUtente(Long idUtente) {
+
+        List<TicketStatusInfo> result = new ArrayList<>();
+
+        String sql = """
+			SELECT
+			    t.id,
+			    t.categoria,
+			    t.priorita,
+			    t.descrizione,
+			    t.data_ultimo_aggiornamento,
+			    t.data_intervento_prevista,
+			    st.codice AS stato_codice,
+			    st.descrizione AS stato_descrizione,
+			    f.nome AS nome_fornitore
+			FROM ticket t
+			JOIN stati_ticket st ON st.id = t.id_stato
+			LEFT JOIN utenti f ON f.id = t.id_fornitore
+			WHERE t.id_utente_apertura = ?
+			  AND st.codice NOT IN ('RISOLTO', 'CHIUSO')
+			ORDER BY t.data_ultimo_aggiornamento DESC
+            """;
+
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setLong(1, idUtente);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(mapTicketStatusInfo(rs));
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    public TicketStatusInfo findTicketStatusById(Long idTicket) {
+
+        String sql = """
+            SELECT
+                t.id,
+                t.categoria,
+                t.priorita,
+                t.descrizione,
+                t.data_ultimo_aggiornamento,
+                st.codice AS stato_codice,
+                st.descrizione AS stato_descrizione
+            FROM ticket t
+            JOIN stati_ticket st ON st.id = t.id_stato
+            WHERE t.id = ?
+            """;
+
+        try (
+                Connection conn = dataSource.getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+            ps.setLong(1, idTicket);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapTicketStatusInfo(rs);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    private TicketStatusInfo mapTicketStatusInfo(ResultSet rs) throws Exception {
+
+        TicketStatusInfo info = new TicketStatusInfo();
+
+        info.setId(rs.getLong("id"));
+        info.setCategoria(rs.getString("categoria"));
+        info.setPriorita(rs.getString("priorita"));
+        info.setDescrizione(rs.getString("descrizione"));
+        info.setStatoCodice(rs.getString("stato_codice"));
+        info.setStatoDescrizione(rs.getString("stato_descrizione"));
+
+        Timestamp ts = rs.getTimestamp("data_ultimo_aggiornamento");
+        if (ts != null) {
+            info.setDataUltimoAggiornamento(ts.toLocalDateTime());
+        }
+        
+        info.setNomeFornitore(rs.getString("nome_fornitore"));
+
+        Timestamp tsIntervento = rs.getTimestamp("data_intervento_prevista");
+        if (tsIntervento != null) {
+            info.setDataInterventoPrevista(tsIntervento.toLocalDateTime());
+        }
+
+        return info;
     }
 
     public Long insertTicket(Long idCondominio,
