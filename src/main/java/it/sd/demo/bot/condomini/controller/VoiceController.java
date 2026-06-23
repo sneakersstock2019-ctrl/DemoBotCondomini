@@ -93,10 +93,11 @@ public class VoiceController {
             );
 
             return buildRecordResponse(
-                    "Ciao " + utente.getNome()
-                            + ", sono Lucrezia. Vedo che hai già una segnalazione aperta. "
-                            + "Vuoi conoscere lo stato della segnalazione oppure aprirne una nuova?"
-            );
+            	    "Ciao " + utente.getNome()
+            	    + ". Vedo che hai una segnalazione aperta. "
+            	    + "Puoi dire stato segnalazione per ricevere aggiornamenti sul ticket esistente, "
+            	    + "oppure nuova segnalazione per comunicarne una nuova."
+            	);
         }
 
         session.haTicketAperti = false;
@@ -680,25 +681,24 @@ public class VoiceController {
     	String normalized = text.toLowerCase();
 
     	if (normalized.contains("stato")
-    			|| normalized.contains("segnalazione aperta")
-    			|| normalized.contains("ticket")
-    			|| normalized.contains("a che punto")
-    			|| normalized.contains("aggiornamento")
-    			|| normalized.contains("sapere")
-    			|| normalized.contains("come sta")
-    			|| normalized.contains("intervento")) {
-    		return TicketChoiceIntent.STATUS;
+    	        || normalized.contains("aggiornamento")
+    	        || normalized.contains("a che punto")
+    	        || normalized.contains("ticket")
+    	        || normalized.contains("segnalazione aperta")
+    	        || normalized.contains("come procede")
+    	        || normalized.contains("intervento")
+    	        || normalized.contains("novità")) {
+    	    return TicketChoiceIntent.STATUS;
     	}
 
     	if (normalized.contains("nuova")
-    			|| normalized.contains("nuovo")
-    			|| normalized.contains("aprire")
-    			|| normalized.contains("apro")
-    			|| normalized.contains("segnalare")
-    			|| normalized.contains("segnalazione nuova")
-    			|| normalized.contains("altro problema")
-    			|| normalized.contains("un problema")) {
-    		return TicketChoiceIntent.NEW_TICKET;
+    	        || normalized.contains("nuovo")
+    	        || normalized.contains("altro problema")
+    	        || normalized.contains("aprire")
+    	        || normalized.contains("segnalazione")
+    	        || normalized.contains("voglio segnalare")
+    	        || normalized.contains("devo segnalare")) {
+    	    return TicketChoiceIntent.NEW_TICKET;
     	}
 
     	return TicketChoiceIntent.UNKNOWN;
