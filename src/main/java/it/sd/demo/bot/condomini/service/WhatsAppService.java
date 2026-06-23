@@ -1,5 +1,6 @@
 package it.sd.demo.bot.condomini.service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -311,9 +312,11 @@ public class WhatsAppService {
         	    }
 
         	    if (ticket.getDataInterventoPrevista() != null) {
-
         	        risposta.append("\n📅 Intervento previsto: ")
-        	                 .append(ticket.getDataInterventoPrevista());
+                    .append(
+                        ticket.getDataInterventoPrevista()
+                              .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    );
         	    }
 
         	    risposta.append("\n\n");
