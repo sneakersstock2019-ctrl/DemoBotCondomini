@@ -2,7 +2,6 @@ package it.sd.demo.bot.condomini.service;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.Base64;
 import java.util.Map;
 
 import org.java_websocket.client.WebSocketClient;
@@ -22,7 +21,7 @@ public class OpenAIRealtimeClient {
 
     public WebSocketClient createTranscriptionClient(String callSid) throws Exception {
 
-        URI uri = new URI("wss://api.openai.com/v1/realtime?model=gpt-4o-transcribe");
+        URI uri = new URI("wss://api.openai.com/v1/realtime?model=gpt-4o-mini-transcribe");
 
         WebSocketClient client = new WebSocketClient(uri) {
 
@@ -61,7 +60,6 @@ public class OpenAIRealtimeClient {
         };
 
         client.addHeader("Authorization", "Bearer " + openAiApiKey);
-        client.addHeader("OpenAI-Beta", "realtime=v1");
 
         return client;
     }
