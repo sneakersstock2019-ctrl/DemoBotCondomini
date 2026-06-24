@@ -43,7 +43,7 @@ public class VoiceController {
     private final PhoneUtils phoneUtils;
     private final TwilioService twilioService;
     
-    private static final String TEST_MEDIA_STREAM_PHONE = "393492123304";
+    private static final String TEST_MEDIA_STREAM_PHONE = "3492123304";
 
     @RequestMapping(
             value = "/incoming",
