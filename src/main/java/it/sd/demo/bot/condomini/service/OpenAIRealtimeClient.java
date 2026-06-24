@@ -21,7 +21,7 @@ public class OpenAIRealtimeClient {
 
     public WebSocketClient createTranscriptionClient(String callSid) throws Exception {
 
-        URI uri = new URI("wss://api.openai.com/v1/realtime?model=gpt-4o-mini-transcribe");
+        URI uri = new URI("wss://api.openai.com/v1/realtime?model=gpt-realtime-whisper");
 
         WebSocketClient client = new WebSocketClient(uri) {
 
