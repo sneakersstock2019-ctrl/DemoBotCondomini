@@ -206,7 +206,6 @@ public class OpenAIRealtimeClient {
         Map<String, Object> responseCreate = Map.of(
                 "type", "response.create",
                 "response", Map.of(
-                        "modalities", new String[]{"audio"},
                         "instructions", """
                             Inizia la telefonata.
                             Saluta cordialmente il condomino.

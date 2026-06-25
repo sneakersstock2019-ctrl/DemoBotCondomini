@@ -140,18 +140,6 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 WebSocketClient openAiClient = openAiClients.get(streamSid);
 
                 if (openAiClient != null && openAiClient.isOpen()) {
-
-                    if (!Boolean.TRUE.equals(greetingSent.get(streamSid))) {
-                        greetingSent.put(streamSid, true);
-
-                        try {
-                            openAIRealtimeClient.sendInitialGreeting(openAiClient);
-                            System.out.println("SALUTO INIZIALE INVIATO A OPENAI");
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-
                     openAIRealtimeClient.sendAudio(openAiClient, payload);
                 }
 
