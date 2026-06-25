@@ -106,10 +106,7 @@ public class VoiceController {
         session.setVoiceSessionStep(VoiceSessionStep.NEW_TICKET);
         
         if (TEST_MEDIA_STREAM_PHONE.equals(phone)) {
-            return buildRealtimeConnectResponse(
-                    "Ciao " + utente.getNome()
-                    + ", sono Lucrezia. Mi dica pure come posso aiutarla."
-            , utente, phone);
+            return buildRealtimeConnectResponse(utente, phone);
         }
 
         return buildRecordResponse(
@@ -524,12 +521,11 @@ public class VoiceController {
         );
     }
     
-    private String buildRealtimeConnectResponse(String message, Utente utente, String phone) {
+    private String buildRealtimeConnectResponse(Utente utente, String phone) {
 
         return """
             <?xml version="1.0" encoding="UTF-8"?>
             <Response>
-                <Say language="it-IT" voice="%s">%s</Say>
                 <Connect>
                     <Stream url="wss://demobotcondomini-production.up.railway.app/voice/media-stream">
                         <Parameter name="phone" value="%s"/>
@@ -539,8 +535,6 @@ public class VoiceController {
                 </Connect>
             </Response>
             """.formatted(
-                TWILIO_VOICE,
-                escapeXml(message),
                 escapeXml(phone),
                 escapeXml(utente.getNome()),
                 escapeXml(utente.getNomeCondominio())

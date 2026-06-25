@@ -54,6 +54,13 @@ public class OpenAIRealtimeClient {
 
                     if ("session.updated".equals(type)) {
                         System.out.println("OPENAI REALTIME VOICE SESSION UPDATED");
+
+                        try {
+                            sendInitialGreeting(this);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
                         return;
                     }
 
@@ -178,6 +185,25 @@ public class OpenAIRealtimeClient {
                                         "voice", "marin"
                                 )
                         )
+                )
+        );
+
+        client.send(objectMapper.writeValueAsString(event));
+    }
+    
+    private void sendInitialGreeting(WebSocketClient client) throws Exception {
+
+        Map<String, Object> event = Map.of(
+                "type", "response.create",
+                "response", Map.of(
+                        "modalities", new String[]{"audio"},
+                        "instructions", """
+                            Saluta il condomino per nome.
+                            Presentati come Lucrezia.
+                            Di' che sei l'assistente vocale del condominio.
+                            Chiedi in modo naturale come puoi aiutarlo oggi.
+                            Usa una frase breve e professionale.
+                            """
                 )
         );
 
