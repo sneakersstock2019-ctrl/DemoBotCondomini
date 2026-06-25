@@ -531,7 +531,7 @@ public class VoiceController {
             <Response>
                 <Say language="it-IT" voice="%s">%s</Say>
                 <Connect>
-                    <Stream url="wss://TUO-DOMINIO.up.railway.app/voice/media-stream"/>
+                    <Stream url="wss://demobotcondomini-production.up.railway.app/voice/media-stream"/>
                 </Connect>
             </Response>
             """.formatted(
