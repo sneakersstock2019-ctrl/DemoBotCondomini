@@ -106,9 +106,9 @@ public class VoiceController {
         session.setVoiceSessionStep(VoiceSessionStep.NEW_TICKET);
         
         if (TEST_MEDIA_STREAM_PHONE.equals(phone)) {
-            return buildRecordResponseWithMediaStream(
+            return buildRealtimeConnectResponse(
                     "Ciao " + utente.getNome()
-                    + ", sono la nuova Lucrezia. Mi descriva pure il problema."
+                    + ", sono Lucrezia. Mi dica pure come posso aiutarla."
             );
         }
 
@@ -517,6 +517,22 @@ public class VoiceController {
                         timeout="2"
                         playBeep="false"
                         trim="trim-silence"/>
+            </Response>
+            """.formatted(
+                TWILIO_VOICE,
+                escapeXml(message)
+        );
+    }
+    
+    private String buildRealtimeConnectResponse(String message) {
+
+        return """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Response>
+                <Say language="it-IT" voice="%s">%s</Say>
+                <Connect>
+                    <Stream url="wss://TUO-DOMINIO.up.railway.app/voice/media-stream"/>
+                </Connect>
             </Response>
             """.formatted(
                 TWILIO_VOICE,

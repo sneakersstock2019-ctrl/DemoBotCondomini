@@ -12,6 +12,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.sd.demo.bot.condomini.service.OpenAIRealtimeAudioListener;
 import it.sd.demo.bot.condomini.service.OpenAIRealtimeClient;
 import lombok.RequiredArgsConstructor;
 
@@ -25,6 +26,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
     private final Map<String, Integer> chunkCounter = new ConcurrentHashMap<>();
     private final Map<String, WebSocketClient> openAiClients = new ConcurrentHashMap<>();
+    private final Map<String, WebSocketSession> twilioSessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionToStreamSid = new ConcurrentHashMap<>();
 
     @Override
@@ -54,16 +56,45 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
                 chunkCounter.put(streamSid, 0);
                 sessionToStreamSid.put(session.getId(), streamSid);
+                twilioSessions.put(streamSid, session);
 
                 System.out.println("############################");
                 System.out.println("MEDIA STREAM EVENT: start");
                 System.out.println("STREAM SID = " + streamSid);
                 System.out.println("CALL SID = " + callSid);
-                System.out.println("Apro connessione OpenAI Realtime...");
+                System.out.println("Apro connessione OpenAI Realtime Voice...");
                 System.out.println("############################");
 
+                OpenAIRealtimeAudioListener listener = new OpenAIRealtimeAudioListener() {
+
+                    @Override
+                    public void onAudioDelta(String base64Audio) {
+                        sendAudioToTwilio(streamSid, base64Audio);
+                    }
+
+                    @Override
+                    public void onAssistantTranscriptDelta(String delta) {
+                        System.out.print(delta);
+                    }
+
+                    @Override
+                    public void onAssistantTranscriptDone(String transcript) {
+                        System.out.println();
+                        System.out.println("############################");
+                        System.out.println("LUCREZIA REALTIME:");
+                        System.out.println(transcript);
+                        System.out.println("############################");
+                    }
+
+                    @Override
+                    public void onError(String rawMessage) {
+                        System.out.println("OPENAI REALTIME LISTENER ERROR:");
+                        System.out.println(rawMessage);
+                    }
+                };
+
                 WebSocketClient openAiClient =
-                        openAIRealtimeClient.createTranscriptionClient(callSid);
+                        openAIRealtimeClient.createVoiceClient(callSid, listener);
 
                 openAiClient.connectBlocking();
 
@@ -99,9 +130,10 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             case "stop" -> {
                 String streamSid = root.path("streamSid").asText();
 
-                closeOpenAiClient(streamSid);
-
                 Integer total = chunkCounter.remove(streamSid);
+
+                closeOpenAiClient(streamSid);
+                twilioSessions.remove(streamSid);
 
                 System.out.println("############################");
                 System.out.println("MEDIA STREAM EVENT: stop");
@@ -116,6 +148,43 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
         }
     }
 
+    private void sendAudioToTwilio(String streamSid, String base64Audio) {
+
+        if (streamSid == null || streamSid.isBlank()) {
+            return;
+        }
+
+        if (base64Audio == null || base64Audio.isBlank()) {
+            return;
+        }
+
+        WebSocketSession twilioSession = twilioSessions.get(streamSid);
+
+        if (twilioSession == null || !twilioSession.isOpen()) {
+            return;
+        }
+
+        try {
+            Map<String, Object> event = Map.of(
+                    "event", "media",
+                    "streamSid", streamSid,
+                    "media", Map.of(
+                            "payload", base64Audio
+                    )
+            );
+
+            String json = objectMapper.writeValueAsString(event);
+
+            synchronized (twilioSession) {
+                twilioSession.sendMessage(new TextMessage(json));
+            }
+
+        } catch (Exception e) {
+            System.out.println("ERRORE INVIO AUDIO A TWILIO:");
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void afterConnectionClosed(WebSocketSession session,
                                       org.springframework.web.socket.CloseStatus status) {
@@ -125,6 +194,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
         if (streamSid != null) {
             closeOpenAiClient(streamSid);
             chunkCounter.remove(streamSid);
+            twilioSessions.remove(streamSid);
         }
 
         System.out.println("############################");
@@ -142,6 +212,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
         if (streamSid != null) {
             closeOpenAiClient(streamSid);
             chunkCounter.remove(streamSid);
+            twilioSessions.remove(streamSid);
         }
 
         System.out.println("############################");
