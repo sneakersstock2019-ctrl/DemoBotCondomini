@@ -12,6 +12,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.sd.demo.bot.condomini.service.LucreziaRealtimeToolService;
 import it.sd.demo.bot.condomini.service.OpenAIRealtimeAudioListener;
 import it.sd.demo.bot.condomini.service.OpenAIRealtimeClient;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
     private final Map<String, WebSocketClient> openAiClients = new ConcurrentHashMap<>();
     private final Map<String, WebSocketSession> twilioSessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionToStreamSid = new ConcurrentHashMap<>();
+    private final LucreziaRealtimeToolService toolService;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -57,6 +59,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 String phone = params.path("phone").asText();
                 String nome = params.path("nome").asText();
                 String condominio = params.path("condominio").asText();
+                Long idUtente = params.path("idUtente").asLong();
 
                 chunkCounter.put(streamSid, 0);
                 sessionToStreamSid.put(session.getId(), streamSid);
@@ -70,6 +73,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 System.out.println("PARAM PHONE = " + phone);
                 System.out.println("PARAM NOME = " + nome);
                 System.out.println("PARAM CONDOMINIO = " + condominio);
+                System.out.println("PARAM ID_UTENTE = " + idUtente);
                 System.out.println("Apro connessione OpenAI Realtime Voice...");
                 System.out.println("############################");
 
@@ -117,6 +121,26 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     public void onError(String rawMessage) {
                         System.out.println("OPENAI REALTIME LISTENER ERROR:");
                         System.out.println(rawMessage);
+                    }
+                    
+                    @Override
+                    public void onFunctionCall(String callId, String name, String arguments) {
+
+                        try {
+                            if ("getOpenTickets".equals(name)) {
+
+                                String outputJson = toolService.getOpenTicketsJson(idUtente);
+
+                                WebSocketClient client = openAiClients.get(streamSid);
+
+                                if (client != null && client.isOpen()) {
+                                    openAIRealtimeClient.sendFunctionOutput(client, callId, outputJson);
+                                }
+                            }
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 };
 

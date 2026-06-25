@@ -12,18 +12,23 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import it.sd.demo.bot.condomini.prompt.LucreziaPromptBuilder;
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class OpenAIRealtimeClient {
 
     @Value("${openai.api-key}")
     private String openAiApiKey;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final LucreziaPromptBuilder promptBuilder;
 
     public WebSocketClient createVoiceClient(String callSid,
-            String nome,
-            String condominio,
-            OpenAIRealtimeAudioListener listener) throws Exception {
+                                             String nome,
+                                             String condominio,
+                                             OpenAIRealtimeAudioListener listener) throws Exception {
 
         URI uri = new URI("wss://api.openai.com/v1/realtime?model=gpt-realtime");
 
@@ -68,6 +73,19 @@ public class OpenAIRealtimeClient {
                         return;
                     }
 
+                    if ("response.function_call_arguments.done".equals(type)) {
+                        String callId = root.path("call_id").asText();
+                        String name = root.path("name").asText();
+                        String arguments = root.path("arguments").asText();
+
+                        System.out.println("OPENAI FUNCTION CALL = " + name);
+                        System.out.println("CALL ID = " + callId);
+                        System.out.println("ARGUMENTS = " + arguments);
+
+                        listener.onFunctionCall(callId, name, arguments);
+                        return;
+                    }
+
                     if ("response.output_audio.delta".equals(type)) {
                         String audioDelta = root.path("delta").asText();
 
@@ -107,6 +125,7 @@ public class OpenAIRealtimeClient {
 
                 } catch (Exception e) {
                     System.out.println("OPENAI REALTIME RAW MESSAGE = " + message);
+                    e.printStackTrace();
                 }
             }
 
@@ -132,7 +151,9 @@ public class OpenAIRealtimeClient {
         return client;
     }
 
-    private void sendSessionUpdate(WebSocketClient client, String nome, String condominio) throws Exception {
+    private void sendSessionUpdate(WebSocketClient client,
+                                   String nome,
+                                   String condominio) throws Exception {
 
         Map<String, Object> event = Map.of(
                 "type", "session.update",
@@ -140,26 +161,31 @@ public class OpenAIRealtimeClient {
                         "type", "realtime",
                         "model", "gpt-realtime",
                         "output_modalities", new String[]{"audio"},
-                        "instructions", """
-		                        Sei Lucrezia, assistente vocale del condominio.
-		
-		                        Stai parlando al telefono con %s.
-		                        Il condominio è: %s.
-		
-		                        Il tuo ruolo è aiutare il condomino a:
-		                        - aprire una nuova segnalazione;
-		                        - capire lo stato di una segnalazione già aperta;
-		                        - raccogliere informazioni utili in modo naturale.
-		
-		                        Parla sempre in italiano.
-		                        Usa tono gentile, professionale e umano.
-		                        Frasi brevi, naturali, adatte a una telefonata.
-		                        Non usare termini tecnici.
-		                        Non dire mai che sei una intelligenza artificiale.
-		                        Non inventare dati sui ticket.
-		                        Se non hai informazioni sufficienti, fai una domanda semplice.
-		                        Se l'utente segnala un problema, chiedi dove si trova e cosa succede.
-		                        """.formatted(nome, condominio),
+                        "instructions",
+                        promptBuilder.buildRealtimeSystemPrompt(nome, condominio)
+                                + """
+
+                                
+                                Quando il condomino chiede informazioni su segnalazioni aperte, stato ticket,
+                                aggiornamenti, interventi previsti o richieste già inviate, usa il tool getOpenTickets.
+
+                                Non inventare mai dati sui ticket.
+                                Se il tool restituisce ticket aperti, spiegali in modo semplice e naturale.
+                                Se non ci sono ticket aperti, dillo chiaramente.
+                                """,
+                        "tools", new Object[]{
+                                Map.of(
+                                        "type", "function",
+                                        "name", "getOpenTickets",
+                                        "description", "Recupera le segnalazioni aperte del condomino che sta chiamando.",
+                                        "parameters", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(),
+                                                "required", new String[]{}
+                                        )
+                                )
+                        },
+                        "tool_choice", "auto",
                         "audio", Map.of(
                                 "input", Map.of(
                                         "format", Map.of(
@@ -184,87 +210,42 @@ public class OpenAIRealtimeClient {
 
         client.send(objectMapper.writeValueAsString(event));
     }
-    
+
     public void sendInitialGreeting(WebSocketClient client,
-    		String nome,
-    		String condominio,
-    		boolean haTicketAperti) throws Exception {
+                                    String nome,
+                                    String condominio,
+                                    boolean haTicketAperti) throws Exception {
 
-    	String userText;
+        String userText =
+                promptBuilder.buildInitialGreetingUserText(nome, condominio, haTicketAperti);
 
-    	String instructions;
+        String instructions =
+                promptBuilder.buildInitialGreetingInstructions(condominio, haTicketAperti);
 
-    	if (haTicketAperti) {
+        Map<String, Object> userMessage = Map.of(
+                "type", "conversation.item.create",
+                "item", Map.of(
+                        "type", "message",
+                        "role", "user",
+                        "content", new Object[]{
+                                Map.of(
+                                        "type", "input_text",
+                                        "text", userText
+                                )
+                        }
+                )
+        );
 
-    		userText = """
-    				La chiamata è appena iniziata.
-    				Il condomino si chiama %s.
-    				Il condominio è %s.
-    				Il condomino ha almeno una segnalazione ancora aperta.
-    				""".formatted(nome, condominio);
+        client.send(objectMapper.writeValueAsString(userMessage));
 
-    		instructions = """
-    				Inizia la telefonata.
+        Map<String, Object> responseCreate = Map.of(
+                "type", "response.create",
+                "response", Map.of(
+                        "instructions", instructions
+                )
+        );
 
-    				Saluta il condomino chiamandolo per nome.
-    				Presentati come Lucrezia.
-    				Di' che hai visto che ha una segnalazione ancora aperta.
-    				Chiedi se vuole conoscere lo stato della segnalazione oppure aprirne una nuova.
-
-    				Usa una sola frase breve, naturale e professionale.
-    				Parla come una receptionist umana.
-    				Non essere robotica.
-    				Non ripetere il nome più di una volta.
-    				Non inventare dettagli sulla segnalazione.
-    				""";
-
-    	} else {
-
-    		userText = """
-    				La chiamata è appena iniziata.
-    				Il condomino si chiama %s.
-    				Il condominio è %s.
-    				""".formatted(nome, condominio);
-
-    		instructions = """
-    				Inizia la telefonata.
-
-    				Saluta il condomino chiamandolo per nome.
-    				Presentati come Lucrezia.
-    				Di' che sei l'assistente vocale del condominio %s.
-    				Chiedi come puoi aiutarlo oggi.
-
-    				Usa una sola frase breve, naturale e professionale.
-    				Parla come una receptionist umana.
-    				Non essere robotica.
-    				Non ripetere il nome più di una volta.
-    				""".formatted(condominio);
-    	}
-
-    	Map<String, Object> userMessage = Map.of(
-    			"type", "conversation.item.create",
-    			"item", Map.of(
-    					"type", "message",
-    					"role", "user",
-    					"content", new Object[]{
-    							Map.of(
-    									"type", "input_text",
-    									"text", userText
-    									)
-    					}
-    					)
-    			);
-
-    	client.send(objectMapper.writeValueAsString(userMessage));
-
-    	Map<String, Object> responseCreate = Map.of(
-    			"type", "response.create",
-    			"response", Map.of(
-    					"instructions", instructions
-    					)
-    			);
-
-    	client.send(objectMapper.writeValueAsString(responseCreate));
+        client.send(objectMapper.writeValueAsString(responseCreate));
     }
 
     public void sendAudio(WebSocketClient client, String twilioBase64Payload) {
@@ -286,5 +267,35 @@ public class OpenAIRealtimeClient {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void sendFunctionOutput(WebSocketClient client,
+                                   String callId,
+                                   String outputJson) throws Exception {
+
+        Map<String, Object> functionOutput = Map.of(
+                "type", "conversation.item.create",
+                "item", Map.of(
+                        "type", "function_call_output",
+                        "call_id", callId,
+                        "output", outputJson
+                )
+        );
+
+        client.send(objectMapper.writeValueAsString(functionOutput));
+
+        Map<String, Object> responseCreate = Map.of(
+                "type", "response.create",
+                "response", Map.of(
+                        "instructions", """
+                                Usa il risultato del tool per rispondere al condomino.
+                                Spiega lo stato delle segnalazioni in modo semplice, naturale e breve.
+                                Se non ci sono ticket aperti, digli che al momento non risultano segnalazioni aperte.
+                                Non usare termini tecnici.
+                                """
+                )
+        );
+
+        client.send(objectMapper.writeValueAsString(responseCreate));
     }
 }
