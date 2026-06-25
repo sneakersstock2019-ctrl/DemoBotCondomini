@@ -109,7 +109,7 @@ public class VoiceController {
             return buildRealtimeConnectResponse(
                     "Ciao " + utente.getNome()
                     + ", sono Lucrezia. Mi dica pure come posso aiutarla."
-            );
+            , utente, phone);
         }
 
         return buildRecordResponse(
@@ -524,19 +524,26 @@ public class VoiceController {
         );
     }
     
-    private String buildRealtimeConnectResponse(String message) {
+    private String buildRealtimeConnectResponse(String message, Utente utente, String phone) {
 
         return """
             <?xml version="1.0" encoding="UTF-8"?>
             <Response>
                 <Say language="it-IT" voice="%s">%s</Say>
                 <Connect>
-                    <Stream url="wss://demobotcondomini-production.up.railway.app/voice/media-stream"/>
+                    <Stream url="wss://demobotcondomini-production.up.railway.app/voice/media-stream">
+                        <Parameter name="phone" value="%s"/>
+                        <Parameter name="nome" value="%s"/>
+                        <Parameter name="condominio" value="%s"/>
+                    </Stream>
                 </Connect>
             </Response>
             """.formatted(
                 TWILIO_VOICE,
-                escapeXml(message)
+                escapeXml(message),
+                escapeXml(phone),
+                escapeXml(utente.getNome()),
+                escapeXml(utente.getNomeCondominio())
         );
     }
 

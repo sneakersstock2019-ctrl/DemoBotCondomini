@@ -21,7 +21,9 @@ public class OpenAIRealtimeClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public WebSocketClient createVoiceClient(String callSid,
-                                             OpenAIRealtimeAudioListener listener) throws Exception {
+            String nome,
+            String condominio,
+            OpenAIRealtimeAudioListener listener) throws Exception {
 
         URI uri = new URI("wss://api.openai.com/v1/realtime?model=gpt-realtime");
 
@@ -32,7 +34,7 @@ public class OpenAIRealtimeClient {
                 System.out.println("OPENAI REALTIME VOICE CONNECTED - CALL SID = " + callSid);
 
                 try {
-                    sendSessionUpdate(this);
+                    sendSessionUpdate(this, nome, condominio);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -129,7 +131,7 @@ public class OpenAIRealtimeClient {
         return client;
     }
 
-    private void sendSessionUpdate(WebSocketClient client) throws Exception {
+    private void sendSessionUpdate(WebSocketClient client, String nome, String condominio) throws Exception {
 
         Map<String, Object> event = Map.of(
                 "type", "session.update",
@@ -138,16 +140,25 @@ public class OpenAIRealtimeClient {
                         "model", "gpt-realtime",
                         "output_modalities", new String[]{"audio"},
                         "instructions", """
-                            Sei Lucrezia, assistente vocale del condominio.
-
-                            Parli al telefono con un condomino.
-                            Rispondi sempre in italiano.
-                            Usa tono gentile, naturale e professionale.
-                            Frasi brevi, adatte a una chiamata telefonica.
-                            Non dire mai che sei un'intelligenza artificiale.
-                            Se non capisci, chiedi di ripetere.
-                            Per ora siamo in modalità test: rispondi solo per verificare che la voce realtime funzioni.
-                            """,
+		                        Sei Lucrezia, assistente vocale del condominio.
+		
+		                        Stai parlando al telefono con %s.
+		                        Il condominio è: %s.
+		
+		                        Il tuo ruolo è aiutare il condomino a:
+		                        - aprire una nuova segnalazione;
+		                        - capire lo stato di una segnalazione già aperta;
+		                        - raccogliere informazioni utili in modo naturale.
+		
+		                        Parla sempre in italiano.
+		                        Usa tono gentile, professionale e umano.
+		                        Frasi brevi, naturali, adatte a una telefonata.
+		                        Non usare termini tecnici.
+		                        Non dire mai che sei una intelligenza artificiale.
+		                        Non inventare dati sui ticket.
+		                        Se non hai informazioni sufficienti, fai una domanda semplice.
+		                        Se l'utente segnala un problema, chiedi dove si trova e cosa succede.
+		                        """.formatted(nome, condominio),
                         "audio", Map.of(
                                 "input", Map.of(
                                         "format", Map.of(

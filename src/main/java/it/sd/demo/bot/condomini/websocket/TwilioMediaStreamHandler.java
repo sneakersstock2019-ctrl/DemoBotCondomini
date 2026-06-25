@@ -53,6 +53,11 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             case "start" -> {
                 String streamSid = root.path("start").path("streamSid").asText();
                 String callSid = root.path("start").path("callSid").asText();
+                
+                JsonNode params = root.path("start").path("customParameters");
+                String phone = params.path("phone").asText();
+                String nome = params.path("nome").asText();
+                String condominio = params.path("condominio").asText();
 
                 chunkCounter.put(streamSid, 0);
                 sessionToStreamSid.put(session.getId(), streamSid);
@@ -62,6 +67,9 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 System.out.println("MEDIA STREAM EVENT: start");
                 System.out.println("STREAM SID = " + streamSid);
                 System.out.println("CALL SID = " + callSid);
+                System.out.println("PARAM PHONE = " + phone);
+                System.out.println("PARAM NOME = " + nome);
+                System.out.println("PARAM CONDOMINIO = " + condominio);
                 System.out.println("Apro connessione OpenAI Realtime Voice...");
                 System.out.println("############################");
 
@@ -93,8 +101,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     }
                 };
 
-                WebSocketClient openAiClient =
-                        openAIRealtimeClient.createVoiceClient(callSid, listener);
+                WebSocketClient openAiClient = openAIRealtimeClient.createVoiceClient(callSid, nome, condominio, listener);
 
                 openAiClient.connectBlocking();
 
