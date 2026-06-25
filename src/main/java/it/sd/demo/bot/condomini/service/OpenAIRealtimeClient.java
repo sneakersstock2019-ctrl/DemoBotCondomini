@@ -185,43 +185,86 @@ public class OpenAIRealtimeClient {
         client.send(objectMapper.writeValueAsString(event));
     }
     
-    public void sendInitialGreeting(WebSocketClient client) throws Exception {
+    public void sendInitialGreeting(WebSocketClient client,
+    		String nome,
+    		String condominio,
+    		boolean haTicketAperti) throws Exception {
 
-        Map<String, Object> userMessage = Map.of(
-                "type", "conversation.item.create",
-                "item", Map.of(
-                        "type", "message",
-                        "role", "user",
-                        "content", new Object[]{
-                                Map.of(
-                                        "type", "input_text",
-                                        "text", "La chiamata è appena iniziata. Saluta il condomino e chiedi come puoi aiutarlo."
-                                )
-                        }
-                )
-        );
+    	String userText;
 
-        client.send(objectMapper.writeValueAsString(userMessage));
+    	String instructions;
 
-        Map<String, Object> responseCreate = Map.of(
-                "type", "response.create",
-                "response", Map.of(
-                        "instructions", """
-                            Inizia la telefonata.
-                            Saluta cordialmente il condomino.
-                            Presentati come Lucrezia.
-                            Di' che sei l'assistente vocale del condominio.
-                            Chiedi come puoi aiutarlo oggi.
-                            Usa una sola frase breve, naturale e professionale.
-                            Parla come una receptionist umana.
-							Usa una frase breve.
-							Non essere robotica.
-							Non ripetere il nome più di una volta.
-                            """
-                )
-        );
+    	if (haTicketAperti) {
 
-        client.send(objectMapper.writeValueAsString(responseCreate));
+    		userText = """
+    				La chiamata è appena iniziata.
+    				Il condomino si chiama %s.
+    				Il condominio è %s.
+    				Il condomino ha almeno una segnalazione ancora aperta.
+    				""".formatted(nome, condominio);
+
+    		instructions = """
+    				Inizia la telefonata.
+
+    				Saluta il condomino chiamandolo per nome.
+    				Presentati come Lucrezia.
+    				Di' che hai visto che ha una segnalazione ancora aperta.
+    				Chiedi se vuole conoscere lo stato della segnalazione oppure aprirne una nuova.
+
+    				Usa una sola frase breve, naturale e professionale.
+    				Parla come una receptionist umana.
+    				Non essere robotica.
+    				Non ripetere il nome più di una volta.
+    				Non inventare dettagli sulla segnalazione.
+    				""";
+
+    	} else {
+
+    		userText = """
+    				La chiamata è appena iniziata.
+    				Il condomino si chiama %s.
+    				Il condominio è %s.
+    				""".formatted(nome, condominio);
+
+    		instructions = """
+    				Inizia la telefonata.
+
+    				Saluta il condomino chiamandolo per nome.
+    				Presentati come Lucrezia.
+    				Di' che sei l'assistente vocale del condominio %s.
+    				Chiedi come puoi aiutarlo oggi.
+
+    				Usa una sola frase breve, naturale e professionale.
+    				Parla come una receptionist umana.
+    				Non essere robotica.
+    				Non ripetere il nome più di una volta.
+    				""".formatted(condominio);
+    	}
+
+    	Map<String, Object> userMessage = Map.of(
+    			"type", "conversation.item.create",
+    			"item", Map.of(
+    					"type", "message",
+    					"role", "user",
+    					"content", new Object[]{
+    							Map.of(
+    									"type", "input_text",
+    									"text", userText
+    									)
+    					}
+    					)
+    			);
+
+    	client.send(objectMapper.writeValueAsString(userMessage));
+
+    	Map<String, Object> responseCreate = Map.of(
+    			"type", "response.create",
+    			"response", Map.of(
+    					"instructions", instructions
+    					)
+    			);
+
+    	client.send(objectMapper.writeValueAsString(responseCreate));
     }
 
     public void sendAudio(WebSocketClient client, String twilioBase64Payload) {
