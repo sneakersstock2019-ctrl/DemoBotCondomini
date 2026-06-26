@@ -94,6 +94,10 @@ public class VoiceController {
                             .map(TicketStatusInfo::getId)
                             .toList()
             );
+            
+            if (TEST_MEDIA_STREAM_PHONE.equals(phone)) {
+                return buildRealtimeConnectResponse(utente, phone);
+            }
 
             return buildRecordResponse(
             	    "Ciao " + utente.getNome()
