@@ -12,6 +12,7 @@ public class VoiceContext {
     private String nome;
     private String condominio;
     private Long idUtente;
+    private Long idCondominio;
 
     private List<TicketStatusInfo> ticketAperti = new ArrayList<>();
 

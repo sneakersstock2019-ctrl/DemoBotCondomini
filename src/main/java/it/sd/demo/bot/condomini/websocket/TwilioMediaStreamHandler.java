@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.sd.demo.bot.condomini.bean.TicketStatusInfo;
 import it.sd.demo.bot.condomini.bean.VoiceContext;
 import it.sd.demo.bot.condomini.dao.TicketDao;
-import it.sd.demo.bot.condomini.service.LucreziaRealtimeToolService;
+import it.sd.demo.bot.condomini.realtime.tool.LucreziaToolDispatcher;
 import it.sd.demo.bot.condomini.service.OpenAIRealtimeAudioListener;
 import it.sd.demo.bot.condomini.service.OpenAIRealtimeClient;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final OpenAIRealtimeClient openAIRealtimeClient;
-    private final LucreziaRealtimeToolService toolService;
+    private final LucreziaToolDispatcher toolDispatcher;
     private final TicketDao ticketDao;
 
     private final Map<String, Integer> chunkCounter = new ConcurrentHashMap<>();
@@ -67,6 +67,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 String nome = params.path("nome").asText();
                 String condominio = params.path("condominio").asText();
                 Long idUtente = params.path("idUtente").asLong();
+                Long idCondominio = params.path("idCondominio").asLong();
 
                 List<TicketStatusInfo> ticketAperti = new ArrayList<>();
 
@@ -83,6 +84,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 context.setCondominio(condominio);
                 context.setIdUtente(idUtente);
                 context.setTicketAperti(ticketAperti);
+                context.setIdCondominio(idCondominio);
 
                 chunkCounter.put(streamSid, 0);
                 sessionToStreamSid.put(session.getId(), streamSid);
@@ -96,6 +98,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 System.out.println("PARAM NOME = " + nome);
                 System.out.println("PARAM CONDOMINIO = " + condominio);
                 System.out.println("PARAM ID_UTENTE = " + idUtente);
+                System.out.println("PARAM ID_CONDOMINIO = " + idCondominio);
                 System.out.println("TICKET APERTI = " + ticketAperti.size());
                 System.out.println("Apro connessione OpenAI Realtime Voice...");
                 System.out.println("############################");
@@ -146,15 +149,12 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     public void onFunctionCall(String callId, String name, String arguments) {
 
                         try {
-                            if ("getOpenTickets".equals(name)) {
+                            String outputJson = toolDispatcher.execute(name, arguments, context);
 
-                                String outputJson = toolService.getOpenTicketsJson(idUtente);
+                            WebSocketClient client = openAiClients.get(streamSid);
 
-                                WebSocketClient client = openAiClients.get(streamSid);
-
-                                if (client != null && client.isOpen()) {
-                                    openAIRealtimeClient.sendFunctionOutput(client, callId, outputJson);
-                                }
+                            if (client != null && client.isOpen()) {
+                                openAIRealtimeClient.sendFunctionOutput(client, callId, outputJson);
                             }
 
                         } catch (Exception e) {

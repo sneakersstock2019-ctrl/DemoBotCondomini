@@ -165,7 +165,18 @@ public class OpenAIRealtimeClient {
                         "instructions",
                         promptBuilder.buildRealtimeSystemPrompt(nome, condominio)
                                 + """
-
+								Se il condomino vuole aprire una nuova segnalazione, raccogli prima:
+								- che problema c'è;
+								- dove si trova;
+								- se riguarda una parte comune o privata;
+								- eventuale urgenza.
+								
+								Quando hai informazioni sufficienti, usa il tool createTicket.
+								
+								Non aprire una segnalazione se non è chiaro dove si trova il problema.
+								Dopo aver aperto la segnalazione, comunica il numero del ticket in modo naturale.
+                                
+                                
                                 
                                 Quando il condomino chiede informazioni su segnalazioni aperte, stato ticket,
                                 aggiornamenti, interventi previsti o richieste già inviate, usa il tool getOpenTickets.
@@ -183,6 +194,33 @@ public class OpenAIRealtimeClient {
                                                 "type", "object",
                                                 "properties", Map.of(),
                                                 "required", new String[]{}
+                                        )
+                                ),
+                                Map.of(
+                                        "type", "function",
+                                        "name", "createTicket",
+                                        "description", "Apre una nuova segnalazione condominiale per il condomino che sta chiamando.",
+                                        "parameters", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(
+                                                        "categoria", Map.of(
+                                                                "type", "string",
+                                                                "description", "Categoria della segnalazione. Valori consigliati: elettricista, idraulico, ascensore, pulizia, cancello, generico."
+                                                        ),
+                                                        "priorita", Map.of(
+                                                                "type", "string",
+                                                                "description", "Priorità della segnalazione: bassa, media oppure alta."
+                                                        ),
+                                                        "descrizione", Map.of(
+                                                                "type", "string",
+                                                                "description", "Descrizione chiara e completa del problema segnalato dal condomino."
+                                                        )
+                                                ),
+                                                "required", new String[]{
+                                                        "categoria",
+                                                        "priorita",
+                                                        "descrizione"
+                                                }
                                         )
                                 )
                         },

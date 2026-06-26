@@ -1,0 +1,109 @@
+package it.sd.demo.bot.condomini.realtime.tool;
+
+import java.util.Map;
+
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import it.sd.demo.bot.condomini.bean.VoiceContext;
+import it.sd.demo.bot.condomini.dao.TicketDao;
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
+public class CreateTicketTool implements LucreziaTool {
+
+    private final TicketDao ticketDao;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    public String getName() {
+        return "createTicket";
+    }
+
+    @Override
+    public String execute(String arguments, VoiceContext context) {
+
+        try {
+            JsonNode root = objectMapper.readTree(arguments);
+
+            String categoria = safe(root.path("categoria").asText());
+            String priorita = safe(root.path("priorita").asText());
+            String descrizione = safe(root.path("descrizione").asText());
+            String area = safe(root.path("area").asText());
+
+            if (descrizione.isBlank()) {
+                return objectMapper.writeValueAsString(Map.of(
+                        "esito", "MANCANO_INFORMAZIONI",
+                        "campo", "descrizione",
+                        "messaggio", "Manca la descrizione del problema."
+                ));
+            }
+
+            if (area.isBlank()) {
+                return objectMapper.writeValueAsString(Map.of(
+                        "esito", "MANCANO_INFORMAZIONI",
+                        "campo", "area",
+                        "messaggio", "Manca l'indicazione se il problema riguarda una parte comune o privata."
+                ));
+            }
+
+            if (categoria.isBlank()) {
+                categoria = "generico";
+            }
+
+            if (priorita.isBlank()) {
+                priorita = "media";
+            }
+
+            if (!priorita.equals("bassa") && !priorita.equals("media") && !priorita.equals("alta")) {
+                priorita = "media";
+            }
+
+            String descrizioneCompleta = descrizione + " Area: " + area + ".";
+
+            Long ticketId = ticketDao.insertTicket(
+                    context.getIdCondominio(),
+                    context.getIdUtente(),
+                    categoria,
+                    priorita,
+                    "TELEFONO",
+                    descrizioneCompleta
+            );
+
+            if (ticketId == null) {
+                return objectMapper.writeValueAsString(Map.of(
+                        "esito", "ERRORE",
+                        "messaggio", "Non sono riuscita ad aprire la segnalazione."
+                ));
+            }
+
+            return objectMapper.writeValueAsString(Map.of(
+                    "esito", "OK",
+                    "ticket_id", ticketId,
+                    "categoria", categoria,
+                    "priorita", priorita,
+                    "descrizione", descrizioneCompleta,
+                    "messaggio", "Segnalazione aperta correttamente."
+            ));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            try {
+                return objectMapper.writeValueAsString(Map.of(
+                        "esito", "ERRORE",
+                        "messaggio", "Errore tecnico durante l'apertura della segnalazione."
+                ));
+            } catch (Exception ex) {
+                return "{\"esito\":\"ERRORE\"}";
+            }
+        }
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
+    }
+}

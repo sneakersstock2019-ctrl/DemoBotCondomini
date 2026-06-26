@@ -537,6 +537,7 @@ public class VoiceController {
                         <Parameter name="nome" value="%s"/>
                         <Parameter name="condominio" value="%s"/>
                         <Parameter name="idUtente" value="%s"/>
+                        <Parameter name="idCondominio" value="%s"/>
                     </Stream>
                 </Connect>
             </Response>
@@ -544,7 +545,8 @@ public class VoiceController {
                 escapeXml(phone),
                 escapeXml(utente.getNome()),
                 escapeXml(utente.getNomeCondominio()),
-                escapeXml(utente.getId().toString())
+                escapeXml(utente.getId().toString()),
+                escapeXml(utente.getIdCondominio().toString())
         );
     }
 

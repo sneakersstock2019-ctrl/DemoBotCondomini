@@ -1,27 +1,35 @@
-package it.sd.demo.bot.condomini.service;
+package it.sd.demo.bot.condomini.realtime.tool;
 
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import it.sd.demo.bot.condomini.bean.TicketStatusInfo;
+import it.sd.demo.bot.condomini.bean.VoiceContext;
 import it.sd.demo.bot.condomini.dao.TicketDao;
 import lombok.RequiredArgsConstructor;
 
-@Service
+@Component
 @RequiredArgsConstructor
-public class LucreziaRealtimeToolService {
+public class GetOpenTicketsTool implements LucreziaTool {
 
     private final TicketDao ticketDao;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public String getOpenTicketsJson(Long idUtente) {
+    @Override
+    public String getName() {
+        return "getOpenTickets";
+    }
+
+    @Override
+    public String execute(String arguments, VoiceContext context) {
 
         try {
-            List<TicketStatusInfo> tickets = ticketDao.findOpenTicketsByUtente(idUtente);
+            List<TicketStatusInfo> tickets =
+                    ticketDao.findOpenTicketsByUtente(context.getIdUtente());
 
             List<Map<String, Object>> ticketJson = tickets.stream()
                     .map(t -> Map.<String, Object>of(
@@ -33,13 +41,9 @@ public class LucreziaRealtimeToolService {
                             "descrizione", safe(t.getDescrizione()),
                             "fornitore", safe(t.getNomeFornitore()),
                             "data_ultimo_aggiornamento",
-                                    t.getDataUltimoAggiornamento() == null
-                                            ? ""
-                                            : t.getDataUltimoAggiornamento().toString(),
+                            t.getDataUltimoAggiornamento() == null ? "" : t.getDataUltimoAggiornamento().toString(),
                             "data_intervento_prevista",
-                                    t.getDataInterventoPrevista() == null
-                                            ? ""
-                                            : t.getDataInterventoPrevista().toLocalDate().toString()
+                            t.getDataInterventoPrevista() == null ? "" : t.getDataInterventoPrevista().toLocalDate().toString()
                     ))
                     .toList();
 
@@ -52,17 +56,9 @@ public class LucreziaRealtimeToolService {
 
         } catch (Exception e) {
             e.printStackTrace();
-
-            try {
-                return objectMapper.writeValueAsString(
-                        Map.of(
-                                "errore", true,
-                                "messaggio", "Non sono riuscita a recuperare le segnalazioni aperte."
-                        )
-                );
-            } catch (Exception ex) {
-                return "{\"errore\":true}";
-            }
+            return """
+                {"errore":true,"messaggio":"Non sono riuscita a recuperare le segnalazioni aperte."}
+                """;
         }
     }
 
