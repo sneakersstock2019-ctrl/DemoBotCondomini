@@ -374,7 +374,7 @@ public class WhatsAppService {
         userSession.primoMessaggio = false;
     }
 
-    private void invioMessaggio(String to, String testoMessaggio) {
+    public void invioMessaggio(String to, String testoMessaggio) {
     	ResponseEntity<String> responseEntity = null;
     	
     	try {

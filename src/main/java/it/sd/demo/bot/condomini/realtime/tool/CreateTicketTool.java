@@ -76,6 +76,8 @@ public class CreateTicketTool implements LucreziaTool {
                     "TELEFONO",
                     descrizioneCompleta
             );
+            
+            boolean richiediFoto = shouldRequestPhoto(categoria, descrizioneCompleta);
 
             if (ticketId == null) {
                 return objectMapper.writeValueAsString(Map.of(
@@ -90,6 +92,7 @@ public class CreateTicketTool implements LucreziaTool {
                     "categoria", categoria,
                     "priorita", priorita,
                     "descrizione", descrizioneCompleta,
+                    "richiedi_foto", richiediFoto,
                     "messaggio", "Segnalazione aperta correttamente."
             ));
 
@@ -139,5 +142,23 @@ public class CreateTicketTool implements LucreziaTool {
         }
 
         return "";
+    }
+    
+    private boolean shouldRequestPhoto(String categoria, String descrizione) {
+
+        String text = ((categoria == null ? "" : categoria) + " " +
+                       (descrizione == null ? "" : descrizione)).toLowerCase();
+
+        return text.contains("infiltrazione")
+                || text.contains("perdita")
+                || text.contains("umidità")
+                || text.contains("muro")
+                || text.contains("facciata")
+                || text.contains("crepa")
+                || text.contains("danno")
+                || text.contains("sporco")
+                || text.contains("guasto luce")
+                || text.contains("elettricista")
+                || text.contains("idraulico");
     }
 }

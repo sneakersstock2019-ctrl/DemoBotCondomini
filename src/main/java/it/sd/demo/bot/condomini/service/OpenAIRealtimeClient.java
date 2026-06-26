@@ -175,6 +175,8 @@ public class OpenAIRealtimeClient {
 								
 								Non aprire una segnalazione se non è chiaro dove si trova il problema.
 								Dopo aver aperto la segnalazione, comunica il numero del ticket in modo naturale.
+								Se il tool createTicket restituisce richiedi_foto=true, informa il condomino che riceverà un messaggio WhatsApp sullo stesso numero per inviare eventuali foto.
+                                Se richiedi_foto=false, non parlare di fotografie.
                                 
                                 
                                 
