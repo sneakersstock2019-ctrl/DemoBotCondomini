@@ -374,7 +374,7 @@ public class WhatsAppService {
         userSession.primoMessaggio = false;
     }
 
-    public void invioMessaggio(String to, String testoMessaggio) {
+    private void invioMessaggio(String to, String testoMessaggio) {
     	ResponseEntity<String> responseEntity = null;
     	
     	try {
@@ -405,6 +405,31 @@ public class WhatsAppService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    public void inviaRichiestaFotoPostChiamata(String telefono,
+    		String nome,
+    		Long idTicket) {
+
+    	UserSession userSession = sessions.getOrDefault(telefono, new UserSession());
+    	sessions.putIfAbsent(telefono, userSession);
+
+    	userSession.nome = nome;
+    	userSession.step = STEP_ATTESA_ALLEGATI;
+    	userSession.idTicketAperto = idTicket;
+
+    	invioMessaggio(
+    			telefono,
+    			"""
+    			Ciao %s 👋
+
+    			Come concordato telefonicamente, puoi rispondere a questo messaggio allegando una o più foto o video della segnalazione.
+
+    			Li collegherò automaticamente al ticket #%d.
+
+    			Se non vuoi aggiungere allegati, puoi scrivere "no grazie".
+    			""".formatted(nome, idTicket)
+    			);
     }
     
     private void processaAllegato(String from, String type, JsonNode message) {

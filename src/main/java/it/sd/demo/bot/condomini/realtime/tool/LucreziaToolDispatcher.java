@@ -66,18 +66,11 @@ public class LucreziaToolDispatcher {
 
 			Long ticketId = root.path("ticket_id").asLong();
 
-			whatsAppService.invioMessaggio(
-					context.getPhone(),
-					"""
-					Ciao %s 👋
-
-					Come concordato telefonicamente, puoi rispondere a questo messaggio allegando una o più fotografie della segnalazione.
-
-					Le immagini verranno associate al ticket #%d.
-
-					Grazie!
-					""".formatted(context.getNome(), ticketId)
-					);
+			whatsAppService.inviaRichiestaFotoPostChiamata(
+			        context.getPhone(),
+			        context.getNome(),
+			        ticketId
+			);
 
 		} catch (Exception e) {
 			e.printStackTrace();
