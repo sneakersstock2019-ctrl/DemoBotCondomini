@@ -157,6 +157,7 @@ public class CreateTicketTool implements LucreziaTool {
                 || text.contains("crepa")
                 || text.contains("danno")
                 || text.contains("sporco")
+                || text.contains("rotto")
                 || text.contains("guasto luce")
                 || text.contains("elettricista")
                 || text.contains("idraulico");

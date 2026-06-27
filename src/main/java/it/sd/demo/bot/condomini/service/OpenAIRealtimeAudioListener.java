@@ -13,4 +13,8 @@ public interface OpenAIRealtimeAudioListener {
     void onError(String rawMessage);
     
     void onFunctionCall(String callId, String name, String arguments);
+    
+    void onUserSpeechStarted();
+
+    void onAssistantAudioDone();
 }

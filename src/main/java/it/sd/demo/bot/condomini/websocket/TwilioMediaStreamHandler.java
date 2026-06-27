@@ -36,6 +36,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
     private final Map<String, WebSocketClient> openAiClients = new ConcurrentHashMap<>();
     private final Map<String, WebSocketSession> twilioSessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionToStreamSid = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> assistantSpeaking = new ConcurrentHashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -121,11 +122,6 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     }
 
                     @Override
-                    public void onAudioDelta(String base64Audio) {
-                        sendAudioToTwilio(streamSid, base64Audio);
-                    }
-
-                    @Override
                     public void onAssistantTranscriptDelta(String delta) {
                         System.out.print(delta);
                     }
@@ -160,6 +156,37 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                    }
+                    
+                    @Override
+                    public void onAudioDelta(String base64Audio) {
+                        assistantSpeaking.put(streamSid, true);
+                        sendAudioToTwilio(streamSid, base64Audio);
+                    }
+                    
+                    @Override
+                    public void onAssistantAudioDone() {
+                        assistantSpeaking.put(streamSid, false);
+                    }
+
+                    @Override
+                    public void onUserSpeechStarted() {
+
+                        if (!Boolean.TRUE.equals(assistantSpeaking.get(streamSid))) {
+                            return;
+                        }
+
+                        System.out.println("BARGE-IN: utente ha interrotto Lucrezia");
+
+                        sendClearToTwilio(streamSid);
+
+                        WebSocketClient client = openAiClients.get(streamSid);
+
+                        if (client != null && client.isOpen()) {
+                            openAIRealtimeClient.cancelResponse(client);
+                        }
+
+                        assistantSpeaking.put(streamSid, false);
                     }
                 };
 
@@ -208,6 +235,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
                 closeOpenAiClient(streamSid);
                 twilioSessions.remove(streamSid);
+                assistantSpeaking.remove(streamSid);
 
                 System.out.println("############################");
                 System.out.println("MEDIA STREAM EVENT: stop");
@@ -269,6 +297,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             closeOpenAiClient(streamSid);
             chunkCounter.remove(streamSid);
             twilioSessions.remove(streamSid);
+            assistantSpeaking.remove(streamSid);
         }
 
         System.out.println("############################");
@@ -287,6 +316,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             closeOpenAiClient(streamSid);
             chunkCounter.remove(streamSid);
             twilioSessions.remove(streamSid);
+            assistantSpeaking.remove(streamSid);
         }
 
         System.out.println("############################");
@@ -312,6 +342,33 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+    
+    private void sendClearToTwilio(String streamSid) {
+
+        WebSocketSession twilioSession = twilioSessions.get(streamSid);
+
+        if (twilioSession == null || !twilioSession.isOpen()) {
+            return;
+        }
+
+        try {
+            Map<String, Object> event = Map.of(
+                    "event", "clear",
+                    "streamSid", streamSid
+            );
+
+            synchronized (twilioSession) {
+                twilioSession.sendMessage(
+                        new TextMessage(objectMapper.writeValueAsString(event))
+                );
+            }
+
+            System.out.println("CLEAR inviato a Twilio per stream " + streamSid);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

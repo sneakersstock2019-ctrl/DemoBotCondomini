@@ -66,6 +66,7 @@ public class OpenAIRealtimeClient {
 
                     if ("input_audio_buffer.speech_started".equals(type)) {
                         System.out.println("UTENTE HA INIZIATO A PARLARE");
+                        listener.onUserSpeechStarted();
                         return;
                     }
 
@@ -116,6 +117,12 @@ public class OpenAIRealtimeClient {
 
                         return;
                     }
+                    
+                    if ("response.output_audio.done".equals(type)) {
+                        listener.onAssistantAudioDone();
+                        System.out.println("OPENAI REALTIME TYPE = " + type);
+                        return;
+                    }
 
                     if ("response.done".equals(type)) {
                         System.out.println("OPENAI RESPONSE DONE");
@@ -150,6 +157,26 @@ public class OpenAIRealtimeClient {
         client.addHeader("Authorization", "Bearer " + openAiApiKey);
 
         return client;
+    }
+    
+    public void cancelResponse(WebSocketClient client) {
+
+        if (client == null || !client.isOpen()) {
+            return;
+        }
+
+        try {
+            Map<String, Object> event = Map.of(
+                    "type", "response.cancel"
+            );
+
+            client.send(objectMapper.writeValueAsString(event));
+
+            System.out.println("RESPONSE CANCEL inviato a OpenAI");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendSessionUpdate(WebSocketClient client,
