@@ -185,6 +185,10 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     @Override
                     public void onAssistantAudioDone() {
                         assistantSpeaking.put(streamSid, false);
+
+                        if (context.isEndCallRequested()) {
+                            closeTwilioCall(streamSid);
+                        }
                     }
 
                     @Override
@@ -385,6 +389,22 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
             System.out.println("CLEAR inviato a Twilio per stream " + streamSid);
 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void closeTwilioCall(String streamSid) {
+
+        WebSocketSession twilioSession = twilioSessions.get(streamSid);
+
+        if (twilioSession == null || !twilioSession.isOpen()) {
+            return;
+        }
+
+        try {
+            twilioSession.close();
+            System.out.println("CHIAMATA CHIUSA DA LUCREZIA - streamSid=" + streamSid);
         } catch (Exception e) {
             e.printStackTrace();
         }
