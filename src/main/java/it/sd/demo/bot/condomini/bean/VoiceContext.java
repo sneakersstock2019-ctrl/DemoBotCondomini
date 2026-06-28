@@ -18,6 +18,7 @@ public class VoiceContext {
     private String recordingUrl;
     private String recordingSid;
     private boolean endCallRequested;
+    private long lastUserSpeechTime;
 
     private List<TicketStatusInfo> ticketAperti = new ArrayList<>();
     private String trascrizioneChiamata = "";

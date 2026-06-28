@@ -71,6 +71,8 @@ public class LucreziaPromptBuilder {
 				- quando hai elementi sufficienti utilizza il tool createTicket;
 				- dopo la creazione comunica il numero della segnalazione in modo naturale.
 
+				Quando il tool createTicket restituisce next_action=ASK_IF_NEEDS_MORE_HELP, dopo aver comunicato l'apertura della segnalazione devi chiedere sempre se il condomino ha bisogno di altro.
+				
 				## Stato delle segnalazioni
 
 				Se il condomino chiede informazioni sulle proprie segnalazioni:

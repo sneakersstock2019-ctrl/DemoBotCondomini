@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.java_websocket.client.WebSocketClient;
 import org.springframework.stereotype.Component;
@@ -39,6 +42,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
     private final Map<String, WebSocketSession> twilioSessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionToStreamSid = new ConcurrentHashMap<>();
     private final Map<String, Boolean> assistantSpeaking = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -165,6 +169,11 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                         try {
                             String outputJson = toolDispatcher.execute(name, arguments, context);
 
+                            if (outputJson == null) {
+                                System.out.println("TOOL " + name + " eseguito senza output verso OpenAI");
+                                return;
+                            }
+
                             WebSocketClient client = openAiClients.get(streamSid);
 
                             if (client != null && client.isOpen()) {
@@ -184,16 +193,21 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     
                     @Override
                     public void onAssistantAudioDone() {
+
                         assistantSpeaking.put(streamSid, false);
 
                         if (context.isEndCallRequested()) {
                             closeTwilioCall(streamSid);
+                            return;
                         }
+
+                        scheduleSilenceCheck(streamSid, context, 8000);
                     }
 
                     @Override
                     public void onUserSpeechStarted() {
-
+                    	context.setLastUserSpeechTime(System.currentTimeMillis());
+                    	
                         if (!Boolean.TRUE.equals(assistantSpeaking.get(streamSid))) {
                             return;
                         }
@@ -408,5 +422,39 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private void scheduleSilenceCheck(String streamSid,
+    		VoiceContext context,
+    		long delayMs) {
+
+    	long scheduledAt = System.currentTimeMillis();
+
+    	scheduler.schedule(() -> {
+
+    		long lastSpeech = context.getLastUserSpeechTime();
+
+    		if (lastSpeech > scheduledAt) {
+    			return;
+    		}
+
+    		if (Boolean.TRUE.equals(assistantSpeaking.get(streamSid))) {
+    			return;
+    		}
+
+    		if (context.isEndCallRequested()) {
+    			return;
+    		}
+
+    		WebSocketClient client = openAiClients.get(streamSid);
+
+    		if (client != null && client.isOpen()) {
+    			openAIRealtimeClient.sendUserText(
+    					client,
+    					"Il condomino è rimasto in silenzio. Chiedi gentilmente se è ancora in linea."
+    					);
+    		}
+
+    	}, delayMs, TimeUnit.MILLISECONDS);
     }
 }

@@ -17,63 +17,75 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LucreziaToolDispatcher {
 
-	private final List<LucreziaTool> toolList;
-	private final WhatsAppService whatsAppService;
+    private final List<LucreziaTool> toolList;
+    private final WhatsAppService whatsAppService;
 
-	private Map<String, LucreziaTool> tools;
+    private Map<String, LucreziaTool> tools;
 
-	public String execute(String name, String arguments, VoiceContext context) {
+    public String execute(String name, String arguments, VoiceContext context) {
 
-		if (tools == null) {
-			tools = toolList.stream()
-					.collect(Collectors.toMap(LucreziaTool::getName, t -> t));
-		}
+        if (tools == null) {
+            tools = toolList.stream()
+                    .collect(Collectors.toMap(LucreziaTool::getName, t -> t));
+        }
 
-		LucreziaTool tool = tools.get(name);
+        LucreziaTool tool = tools.get(name);
 
-		if (tool == null) {
-			return """
-					{"errore":true,"messaggio":"Tool non riconosciuto."}
-					""";
-		}
+        if (tool == null) {
+            return """
+                    {"errore":true,"messaggio":"Tool non riconosciuto."}
+                    """;
+        }
 
-		String result = tool.execute(arguments, context);
-		handlePostToolActions(name, result, context);
-		return result;
+        String result = tool.execute(arguments, context);
 
-	}
+        /*
+         * Caso speciale:
+         * endCall serve solo a impostare context.endCallRequested = true.
+         * Non dobbiamo mandare function output a OpenAI, altrimenti genera
+         * un'altra risposta parlata dopo il saluto finale.
+         */
+        if ("endCall".equals(name)) {
+            System.out.println("END CALL TOOL ESEGUITO - nessun output verso OpenAI");
+            return null;
+        }
 
-	private void handlePostToolActions(String toolName,
-			String resultJson,
-			VoiceContext context) {
+        handlePostToolActions(name, result, context);
 
-		if (!"createTicket".equals(toolName)) {
-			return;
-		}
+        return result;
+    }
 
-		try {
-			JsonNode root = new ObjectMapper().readTree(resultJson);
+    private void handlePostToolActions(String toolName,
+                                       String resultJson,
+                                       VoiceContext context) {
 
-			if (!"OK".equals(root.path("esito").asText())) {
-				return;
-			}
+        if (!"createTicket".equals(toolName)) {
+            return;
+        }
 
-			boolean richiediFoto = root.path("richiedi_foto").asBoolean(false);
+        try {
+            JsonNode root = new ObjectMapper().readTree(resultJson);
 
-			if (!richiediFoto) {
-				return;
-			}
+            if (!"OK".equals(root.path("esito").asText())) {
+                return;
+            }
 
-			Long ticketId = root.path("ticket_id").asLong();
+            boolean richiediFoto = root.path("richiedi_foto").asBoolean(false);
 
-			whatsAppService.inviaRichiestaFotoPostChiamata(
-			        context.getPhone(),
-			        context.getNome(),
-			        ticketId
-			);
+            if (!richiediFoto) {
+                return;
+            }
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+            Long ticketId = root.path("ticket_id").asLong();
+
+            whatsAppService.inviaRichiestaFotoPostChiamata(
+                    context.getPhone(),
+                    context.getNome(),
+                    ticketId
+            );
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

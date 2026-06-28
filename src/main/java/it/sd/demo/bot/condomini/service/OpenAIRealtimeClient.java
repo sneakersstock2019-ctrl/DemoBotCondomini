@@ -261,6 +261,16 @@ public class OpenAIRealtimeClient {
                                                         "descrizione"
                                                 }
                                         )
+                                ),
+                                Map.of(
+                                        "type", "function",
+                                        "name", "endCall",
+                                        "description", "Chiude cordialmente la chiamata telefonica dopo il saluto finale.",
+                                        "parameters", Map.of(
+                                                "type", "object",
+                                                "properties", Map.of(),
+                                                "required", new String[]{}
+                                        )
                                 )
                         },
                         "tool_choice", "auto",
@@ -378,5 +388,39 @@ public class OpenAIRealtimeClient {
         );
 
         client.send(objectMapper.writeValueAsString(responseCreate));
+    }
+    
+    public void sendUserText(WebSocketClient client, String text) {
+
+        if (client == null || !client.isOpen()) {
+            return;
+        }
+
+        try {
+            Map<String, Object> userMessage = Map.of(
+                    "type", "conversation.item.create",
+                    "item", Map.of(
+                            "type", "message",
+                            "role", "user",
+                            "content", new Object[] {
+                                    Map.of(
+                                            "type", "input_text",
+                                            "text", text
+                                    )
+                            }
+                    )
+            );
+
+            client.send(objectMapper.writeValueAsString(userMessage));
+
+            Map<String, Object> responseCreate = Map.of(
+                    "type", "response.create"
+            );
+
+            client.send(objectMapper.writeValueAsString(responseCreate));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

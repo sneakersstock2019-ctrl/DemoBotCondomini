@@ -125,7 +125,8 @@ public class CreateTicketTool implements LucreziaTool {
                     "priorita", priorita,
                     "descrizione", descrizioneCompleta,
                     "richiedi_foto", richiediFoto,
-                    "messaggio", "Segnalazione aperta correttamente."
+                    "messaggio", "Segnalazione aperta correttamente.",
+                    "next_action", "ASK_IF_NEEDS_MORE_HELP"
             ));
 
         } catch (Exception e) {
