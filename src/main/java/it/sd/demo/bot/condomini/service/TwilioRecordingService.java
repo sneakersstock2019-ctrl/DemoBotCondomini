@@ -37,7 +37,7 @@ public class TwilioRecordingService {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("RecordingStatusCallback", "/voice/recording");
+            body.add("RecordingStatusCallback", "/voice/recording-realtime");
             body.add("RecordingStatusCallbackMethod", "POST");
             body.add("Trim", "trim-silence");
 

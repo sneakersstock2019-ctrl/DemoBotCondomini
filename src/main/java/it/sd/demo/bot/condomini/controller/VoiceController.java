@@ -525,30 +525,6 @@ public class VoiceController {
         );
     }
     
-    private String buildRecordResponseWithMediaStream(String message) {
-
-        return """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <Response>
-                <Start>
-                    <Stream url="wss://demobotcondomini-production.up.railway.app/voice/media-stream">
-                        <Parameter name="source" value="LucreziaVoce"/>
-                    </Stream>
-                </Start>
-                <Say language="it-IT" voice="%s">%s</Say>
-                <Record action="/voice/recording"
-                        method="POST"
-                        maxLength="30"
-                        timeout="2"
-                        playBeep="false"
-                        trim="trim-silence"/>
-            </Response>
-            """.formatted(
-                TWILIO_VOICE,
-                escapeXml(message)
-        );
-    }
-    
     private String buildRealtimeConnectResponse(Utente utente, String phone) {
 
         return """
