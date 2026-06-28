@@ -47,7 +47,9 @@ public class VoiceController {
     private final TwilioService twilioService;
     private final VoiceCallContextRegistry voiceCallContextRegistry;
     
-    private static final String VIP_PHONE = "3492123304";
+    private static final String VIP_1 = "3492123304";
+    private static final String VIP_2 = "3382702339";
+    private static final String VIP_3 = "3277525353";
 
     @RequestMapping(
             value = "/incoming",
@@ -102,7 +104,7 @@ public class VoiceController {
             session.setVoiceSessionStep(VoiceSessionStep.NEW_TICKET);
         }
 
-        boolean salutoVip = VIP_PHONE.equals(phone);
+        boolean salutoVip = (VIP_1.equals(phone) || VIP_2.equals(phone) || VIP_3.equals(phone));
 
         return buildRealtimeConnectResponse(utente, phone, salutoVip);
     }
