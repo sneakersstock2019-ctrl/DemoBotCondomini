@@ -2,6 +2,7 @@ package it.sd.demo.bot.condomini.realtime.tool;
 
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,8 +17,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CreateTicketTool implements LucreziaTool {
 
+    @Value("${twilio.account-sid}")
+    private String accountSid;
+    
     private final TicketDao ticketDao;
     private final TicketConversazioneDao ticketConversazioneDao;
+    
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -88,6 +93,21 @@ public class CreateTicketTool implements LucreziaTool {
             );
             
             context.setIdTicketCreato(ticketId);
+            if (context.getRecordingSid() != null && !context.getRecordingSid().isBlank()) {
+
+                String audioUrl =
+                        "https://api.twilio.com/2010-04-01/Accounts/"
+                        + accountSid
+                        + "/Recordings/"
+                        + context.getRecordingSid()
+                        + ".mp3";
+
+                ticketConversazioneDao.updateAudioUrlByTicket(ticketId, audioUrl);
+
+                System.out.println("Audio registrazione associato al ticket "
+                        + ticketId
+                        + " = " + audioUrl);
+            }
             
             boolean richiediFoto = shouldRequestPhoto(categoria, descrizioneCompleta);
 
