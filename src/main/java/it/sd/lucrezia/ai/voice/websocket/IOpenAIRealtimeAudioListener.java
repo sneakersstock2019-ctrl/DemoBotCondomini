@@ -1,0 +1,22 @@
+package it.sd.lucrezia.ai.voice.websocket;
+
+public interface IOpenAIRealtimeAudioListener {
+
+    void onSessionReady();
+
+    void onAudioDelta(String base64Audio);
+
+    void onAssistantTranscriptDelta(String delta);
+
+    void onAssistantTranscriptDone(String transcript);
+
+    void onError(String rawMessage);
+    
+    void onFunctionCall(String callId, String name, String arguments);
+    
+    void onUserSpeechStarted();
+
+    void onAssistantAudioDone();
+    
+    void onUserTranscriptDone(String transcript);
+}
