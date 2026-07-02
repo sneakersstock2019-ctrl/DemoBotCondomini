@@ -35,27 +35,36 @@ public class VoiceController {
             produces = "application/xml"
     )
     public String incomingCall(@RequestParam(value = "From", required = false) String from) {
-    	Utente utente = null;
-    	String phone = null;
-    	boolean salutoVip = false;
-    	
-        phone = phoneUtils.normalizePhone(from);
 
-        System.out.println("############################");
-        System.out.println("TWILIO INCOMING CALL");
-        System.out.println("FROM = " + from);
-        System.out.println("PHONE = " + phone);
-        System.out.println("############################");
+        try {
+            String phone = phoneUtils.normalizePhone(from);
 
-        utente = utenteDao.findCondominoByTelefono(phone);
-        if (utente == null) {
-        	//TODO da fare con nuova voce
+            System.out.println("############################");
+            System.out.println("TWILIO INCOMING CALL");
+            System.out.println("FROM = " + from);
+            System.out.println("PHONE = " + phone);
+            System.out.println("############################");
+
+            Utente utente = utenteDao.findCondominoByTelefono(phone);
+
+            if (utente == null) {
+                return buildSayResponse(
+                        "Buongiorno, sono Lucrezia. Il numero da cui sta chiamando non risulta abilitato al servizio."
+                );
+            }
+
+            boolean salutoVip =
+                    VIP_1.equals(phone) || VIP_2.equals(phone) || VIP_3.equals(phone);
+
+            return buildRealtimeConnectResponse(utente, phone, salutoVip);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            return buildSayResponse(
+                    "Mi dispiace, al momento Lucrezia non è disponibile. La invitiamo a riprovare più tardi."
+            );
         }
-
-        //TODO da togliere
-        salutoVip = (VIP_1.equals(phone) || VIP_2.equals(phone) || VIP_3.equals(phone));
-
-        return buildRealtimeConnectResponse(utente, phone, salutoVip);
     }
 
     @PostMapping(value = "/recording-realtime")
@@ -104,6 +113,15 @@ public class VoiceController {
                 escapeXml(utente.getIdCondominio().toString()),
                 salutoVip
         );
+    }
+    
+    private String buildSayResponse(String message) {
+        return """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <Response>
+                    <Say language="it-IT" voice="alice">%s</Say>
+                </Response>
+                """.formatted(message);
     }
 
     private String escapeXml(String text) {
