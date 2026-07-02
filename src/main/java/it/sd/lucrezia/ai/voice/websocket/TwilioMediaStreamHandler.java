@@ -33,7 +33,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
-	private static final long BARGE_IN_DEBOUNCE_MS = 600;
+	private static final long BARGE_IN_DEBOUNCE_MS = 300;
 	
     private final ObjectMapper objectMapper = new ObjectMapper();
 
