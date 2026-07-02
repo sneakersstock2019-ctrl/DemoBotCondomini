@@ -74,6 +74,7 @@ public class OpenAIRealtimeService {
 
                     if ("input_audio_buffer.speech_stopped".equals(type)) {
                         CallLogger.info(callSid, "UTENTE HA FINITO DI PARLARE");
+                        listener.onUserSpeechStopped();
                         return;
                     }
 

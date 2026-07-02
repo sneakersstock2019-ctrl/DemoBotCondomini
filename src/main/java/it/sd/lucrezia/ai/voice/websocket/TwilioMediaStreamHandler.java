@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.java_websocket.client.WebSocketClient;
@@ -25,12 +26,15 @@ import it.sd.lucrezia.ai.service.openai.OpenAIRealtimeService;
 import it.sd.lucrezia.ai.service.twilio.TwilioRecordingService;
 import it.sd.lucrezia.ai.tool.LucreziaToolDispatcher;
 import it.sd.lucrezia.ai.util.CallLogger;
+import it.sd.lucrezia.ai.voice.filter.SpeechFilter;
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
 public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
+	private static final long BARGE_IN_DEBOUNCE_MS = 600;
+	
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final OpenAIRealtimeService openAIRealtimeClient;
@@ -46,6 +50,7 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
     private final Map<String, Boolean> assistantSpeaking = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private final Map<String, java.util.concurrent.ScheduledFuture<?>> silenceTasks = new ConcurrentHashMap<>();
+    private final Map<String, ScheduledFuture<?>> bargeInTasks = new ConcurrentHashMap<>();
     private final Map<String, VoiceContext> voiceContexts = new ConcurrentHashMap<>();
 
     @Override
@@ -177,9 +182,13 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                     
                     @Override
                     public void onUserTranscriptDone(String transcript) {
-                        voiceContext.setTrascrizioneChiamata(
-                                voiceContext.getTrascrizioneChiamata()
-                                        + "\nCondomino: " + transcript + "\n"
+
+                        if (SpeechFilter.isNoiseOrFiller(transcript)) {
+                            CallLogger.info(callSid, "INPUT UTENTE ignorato come rumore/filler: " + transcript);
+                            return;
+                        }
+
+                        voiceContext.setTrascrizioneChiamata(voiceContext.getTrascrizioneChiamata() + "\nCondomino: " + transcript + "\n"
                         );
                     }
 
@@ -237,28 +246,55 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
                     @Override
                     public void onUserSpeechStarted() {
-                    	voiceContext.setLastUserSpeechTime(System.currentTimeMillis());
 
-                    	java.util.concurrent.ScheduledFuture<?> task = silenceTasks.remove(streamSid);
-                    	if (task != null) {
-                    	    task.cancel(false);
-                    	}
-                    	
+                        voiceContext.setLastUserSpeechTime(System.currentTimeMillis());
+
+                        ScheduledFuture<?> silenceTask = silenceTasks.remove(streamSid);
+                        if (silenceTask != null) {
+                            silenceTask.cancel(false);
+                        }
+
                         if (!Boolean.TRUE.equals(assistantSpeaking.get(streamSid))) {
                             return;
                         }
 
-                        CallLogger.info(callSid, "BARGE-IN: utente ha interrotto Lucrezia");
-
-                        sendClearToTwilio(streamSid);
-
-                        WebSocketClient client = openAiClients.get(streamSid);
-
-                        if (client != null && client.isOpen()) {
-                            openAIRealtimeClient.cancelResponse(client, callSid);
+                        ScheduledFuture<?> oldBargeTask = bargeInTasks.remove(streamSid);
+                        if (oldBargeTask != null) {
+                            oldBargeTask.cancel(false);
                         }
 
-                        assistantSpeaking.put(streamSid, false);
+                        ScheduledFuture<?> bargeTask = scheduler.schedule(() -> {
+
+                            if (!Boolean.TRUE.equals(assistantSpeaking.get(streamSid))) {
+                                return;
+                            }
+
+                            CallLogger.info(voiceContext, "BARGE-IN confermato dopo debounce");
+
+                            sendClearToTwilio(streamSid);
+
+                            WebSocketClient client = openAiClients.get(streamSid);
+                            if (client != null && client.isOpen()) {
+                                openAIRealtimeClient.cancelResponse(client, callSid);
+                            }
+
+                            assistantSpeaking.put(streamSid, false);
+                            voiceContext.incrementNumeroInterruzioni();
+
+                        }, BARGE_IN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
+
+                        bargeInTasks.put(streamSid, bargeTask);
+                    }
+                    
+                    @Override
+                    public void onUserSpeechStopped() {
+
+                        ScheduledFuture<?> bargeTask = bargeInTasks.remove(streamSid);
+
+                        if (bargeTask != null) {
+                            bargeTask.cancel(false);
+                            CallLogger.info(voiceContext, "BARGE-IN annullato: parlato troppo breve");
+                        }
                     }
                 };
 
@@ -315,6 +351,11 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
                 java.util.concurrent.ScheduledFuture<?> task = silenceTasks.remove(streamSid);
                 if (task != null) {
                     task.cancel(false);
+                }
+                
+                ScheduledFuture<?> bargeTask = bargeInTasks.remove(streamSid);
+                if (bargeTask != null) {
+                    bargeTask.cancel(false);
                 }
 
                 CallLogger.info(voiceContexts.get(streamSid), "############################");
@@ -398,6 +439,11 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             if (task != null) {
                 task.cancel(false);
             }
+            
+            ScheduledFuture<?> bargeTask = bargeInTasks.remove(streamSid);
+            if (bargeTask != null) {
+                bargeTask.cancel(false);
+            }
 
             return;
         }
@@ -431,9 +477,15 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
             twilioSessions.remove(streamSid);
             assistantSpeaking.remove(streamSid);
             voiceContexts.remove(streamSid);
+            
             java.util.concurrent.ScheduledFuture<?> task = silenceTasks.remove(streamSid);
             if (task != null) {
                 task.cancel(false);
+            }
+            
+            ScheduledFuture<?> bargeTask = bargeInTasks.remove(streamSid);
+            if (bargeTask != null) {
+                bargeTask.cancel(false);
             }
         }
 

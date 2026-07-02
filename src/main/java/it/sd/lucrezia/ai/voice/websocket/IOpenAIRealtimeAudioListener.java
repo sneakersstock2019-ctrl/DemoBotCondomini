@@ -19,4 +19,6 @@ public interface IOpenAIRealtimeAudioListener {
     void onAssistantAudioDone();
     
     void onUserTranscriptDone(String transcript);
+    
+    void onUserSpeechStopped();
 }
