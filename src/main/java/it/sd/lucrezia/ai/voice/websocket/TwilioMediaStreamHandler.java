@@ -236,6 +236,11 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
                         assistantSpeaking.put(streamSid, false);
 
+                        if (!voiceContext.isInitialGreetingCompleted()) {
+                            voiceContext.setInitialGreetingCompleted(true);
+                            CallLogger.info(voiceContext, "SALUTO INIZIALE COMPLETATO - barge-in abilitato");
+                        }
+
                         if (voiceContext.isEndCallRequested()) {
                             closeTwilioCall(streamSid);
                             return;
@@ -246,12 +251,17 @@ public class TwilioMediaStreamHandler extends TextWebSocketHandler {
 
                     @Override
                     public void onUserSpeechStarted() {
-
+                    	
                         voiceContext.setLastUserSpeechTime(System.currentTimeMillis());
 
                         ScheduledFuture<?> silenceTask = silenceTasks.remove(streamSid);
                         if (silenceTask != null) {
                             silenceTask.cancel(false);
+                        }
+
+                        if (!voiceContext.isInitialGreetingCompleted()) {
+                            CallLogger.info(voiceContext, "BARGE-IN ignorato: saluto iniziale ancora in corso");
+                            return;
                         }
 
                         if (!Boolean.TRUE.equals(assistantSpeaking.get(streamSid))) {

@@ -26,6 +26,7 @@ public class VoiceContext {
     private String motivoChiusura;
     private int numeroInterruzioni;
     private int numeroTool;
+    private boolean initialGreetingCompleted;
 
     private List<TicketStatusInfo> ticketAperti = new ArrayList<>();
     private String trascrizioneChiamata = "";
